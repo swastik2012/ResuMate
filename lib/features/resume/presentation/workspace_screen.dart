@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import 'package:resume_builder/core/theme/theme_provider.dart';
 import 'package:resume_builder/core/utils/pdf_generator.dart';
 import 'package:resume_builder/core/utils/file_helper.dart';
+import 'package:resume_builder/core/utils/docx_generator.dart';
 import 'package:resume_builder/features/auth/presentation/auth_provider.dart';
 import 'package:resume_builder/features/resume/domain/resume_model.dart';
 import 'package:resume_builder/features/resume/presentation/resume_provider.dart';
@@ -24,9 +25,29 @@ class WorkspaceScreen extends ConsumerStatefulWidget {
 }
 
 class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  Future<void> _exportDocx(BuildContext context) async {
+    final resumeData = ref.read(resumeProvider);
+    final name = resumeData.personalInfo.fullName.trim().isNotEmpty
+        ? resumeData.personalInfo.fullName.trim().replaceAll(' ', '_')
+        : 'Resume';
+    final fileName = '${name}_Document.docx';
+
+    final docxBytes = DocxGenerator.generate(resumeData);
+    await Printing.sharePdf(
+      bytes: docxBytes,
+      filename: fileName,
+    );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported Word document ($fileName)!')),
+      );
+    }
+  }
   // Mobile View Toggle: 0 for Form Edit, 1 for PDF Preview
   int _mobileSelectedIndex = 0;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _previewTemplateIndex = 0;
 
   static const _allTemplateIds = [
@@ -451,6 +472,13 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                 onPressed: () {
                   ref.read(themeProvider.notifier).toggleTheme();
                 },
+              ),
+              // Export DOCX Button
+              IconButton(
+                icon: const Icon(Icons.description_outlined),
+                color: theme.colorScheme.secondary,
+                tooltip: 'Export Microsoft Word (.docx)',
+                onPressed: () => _exportDocx(context),
               ),
               // Save to Google Drive Button
               IconButton(

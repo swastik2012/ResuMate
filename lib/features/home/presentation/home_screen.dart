@@ -1,6 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:printing/printing.dart';
 import 'package:resume_builder/core/theme/theme_provider.dart';
+import 'package:resume_builder/core/utils/backup_service.dart';
 import 'package:resume_builder/features/auth/presentation/auth_provider.dart';
 import 'package:resume_builder/features/home/presentation/resume_list_provider.dart';
 import 'package:resume_builder/features/resume/domain/resume_model.dart';
@@ -24,11 +30,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  Future<void> _exportBackup(BuildContext context) async {
+    final resumes = ref.read(resumeListProvider);
+    if (resumes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No resumes available to export.')),
+      );
+      return;
+    }
+
+    final backupJson = BackupService.exportBackup(resumes);
+    final filename = 'resumate_backup_${DateTime.now().millisecondsSinceEpoch}.resumate';
+    await Printing.sharePdf(
+      bytes: Uint8List.fromList(utf8.encode(backupJson)),
+      filename: filename,
+    );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported ${resumes.length} resumes to backup file!')),
+      );
+    }
+  }
+
+  Future<void> _importBackup(BuildContext context) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.any,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        String content = '';
+        if (file.bytes != null) {
+          content = utf8.decode(file.bytes!);
+        } else if (file.path != null) {
+          final f = File(file.path!);
+          content = await f.readAsString();
+        }
+
+        if (content.trim().isNotEmpty) {
+          final restored = BackupService.importBackup(content);
+          final importedCount = ref.read(resumeListProvider.notifier).importResumes(restored);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Successfully restored $importedCount resumes!')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final resumes = ref.watch(resumeListProvider);
-    final authUser = ref.watch(authProvider).valueOrNull;
+    final authUser = ref.watch(authProvider).value;
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
@@ -36,7 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         slivers: [
           // Premium App Bar
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 180,
             floating: false,
             pinned: true,
             backgroundColor: theme.colorScheme.surface,
@@ -44,11 +109,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             actions: [
               IconButton(
                 icon: Icon(
-                  ref.watch(themeProvider) == AppThemeMode.dark
-                      ? Icons.light_mode_rounded
-                      : Icons.dark_mode_rounded,
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                 ),
                 onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.swap_vert_circle_outlined),
+                tooltip: 'Backup & Restore',
+                onSelected: (val) {
+                  if (val == 'export_backup') {
+                    _exportBackup(context);
+                  } else if (val == 'import_backup') {
+                    _importBackup(context);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'export_backup',
+                    child: Row(
+                      children: [
+                        Icon(Icons.upload_file_rounded, size: 18, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Export Backup (JSON)'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'import_backup',
+                    child: Row(
+                      children: [
+                        Icon(Icons.download_for_offline_rounded, size: 18, color: Colors.green),
+                        SizedBox(width: 8),
+                        Text('Import Backup (Restore)'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               if (authUser != null)
                 PopupMenuButton<String>(

@@ -43,6 +43,8 @@ dependencies:
   google_sign_in: ^6.2.1
   shared_preferences: ^2.2.3
   http: ^1.2.0
+  archive: ^4.0.9
+  file_picker: ^11.0.2
 
 dev_dependencies:
   flutter_test:

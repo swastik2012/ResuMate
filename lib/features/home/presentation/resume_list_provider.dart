@@ -133,6 +133,22 @@ class ResumeListNotifier extends Notifier<List<SavedResume>> {
       return null;
     }
   }
+
+  int importResumes(List<SavedResume> newResumes) {
+    final existingIds = state.map((r) => r.id).toSet();
+    final toAdd = <SavedResume>[];
+    for (final item in newResumes) {
+      if (existingIds.contains(item.id)) {
+        final uniqueId = 'resume_${DateTime.now().millisecondsSinceEpoch}_${toAdd.length}';
+        toAdd.add(item.copyWith(id: uniqueId, lastModified: DateTime.now()));
+      } else {
+        toAdd.add(item);
+      }
+    }
+    state = [...state, ...toAdd];
+    _saveToPrefs();
+    return toAdd.length;
+  }
 }
 
 final resumeListProvider =
