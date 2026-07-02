@@ -1,7 +1,10 @@
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+if (file("google-services.json").exists() || file("src/release/google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {

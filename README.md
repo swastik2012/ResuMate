@@ -1,14 +1,47 @@
 # ResuMate
 
-An AI-powered, ATS-optimized, multi-template Resume Builder application built with Flutter and Riverpod.
+An AI-powered, ATS-optimized, multi-template Resume Builder application built with Flutter, Riverpod, and Google Gemini AI.
 
-## Features
-- **8 Resume Templates**: Modern Indigo, Minimalist, Tech Monospace, Classic Serif, Two-Column Sidebar, Creative Bold, ATS Clean, Executive Formal.
-- **Live Template Preview**: Interactive document rendering with real-time compilation.
-- **AI Resume Extractor**: Extract & structure raw resume text automatically.
-- **Smart Summary Database**: 40+ pre-written role-specific professional summaries.
-- **Multi-Resume Management**: Create, rename, duplicate, and manage multiple resumes.
-- **Custom Squircle Icon & Branding**: Modern design system and squircle launcher icon.
+---
+
+## ✨ Comprehensive Application Features
+
+### 📄 1. 8 Professional PDF Resume Templates
+- **Modern Indigo**: Clean two-tone layout with Indigo header dividers and structured typography.
+- **Minimalist**: Ultra-clean, high-density minimal design for executive readability.
+- **Tech Monospace**: Monospaced code-inspired layout tailored for developers and engineers.
+- **Classic Serif**: Elegant centered layout using classic serif typography.
+- **Two-Column Sidebar**: Dark accent sidebar housing contact info and skill badges.
+- **Creative Bold**: Large accent header block with bold typographic contrast.
+- **ATS Clean**: Single-column ATS-tested design built for maximum parser accuracy.
+- **Executive Formal**: Refined traditional layout with double-line dividers.
+
+### 🔍 2. Live Document Preview & Template Switcher
+- **Interactive PDF Canvas**: Real-time compilation with page preview zoom and page slider.
+- **Template Card Previews**: Live rendered document page thumbnails directly on the template selection screen.
+- **Custom Naming**: Custom resume naming directly inside the template preview modal.
+
+### 🤖 3. Zero-Failure AI Resume Extractor
+- **Raw Text Import**: Paste raw resume text from LinkedIn, Word, or plain text.
+- **Gemini AI Parsing**: Structured extraction of contact info, work experience, education, skills, and projects using Google Gemini 1.5 Flash.
+- **Persistent API Key Entry**: User-configured Gemini API keys saved persistently via SharedPreferences.
+- **Smart Heuristic Fallback**: Built-in fallback text extractor guarantees resume parsing **never fails** even on network error or missing API keys.
+
+### 💾 4. Data Portability & Multi-Format Export
+- **Offline Encrypted JSON Backup & Restore**: Export all saved resumes into a `.resumate` / `.json` backup file with schema signature verification and 1-tap restoration.
+- **Microsoft Word (`.docx`) Export**: Native OpenXML Word document generator producing editable `.docx` files compatible with Word, Google Docs, and Pages.
+- **High-Res PDF Export & Google Drive Cloud Sync**: Direct PDF compilation and 1-tap upload to Google Drive.
+
+### 💡 5. Smart Summary Database
+- **40+ Pre-written Role Summaries**: Built-in database categorized by industry (*Software Engineering, Data Science, Product Management, Design, Marketing, Finance, Healthcare, General*).
+- **Auto-Category Detection**: Automatically highlights relevant summary suggestions based on the user's filled resume profile.
+
+### 📱 6. Multi-Resume Management & Premium UX
+- **Dashboard Management**: Create, edit, rename, duplicate, and delete multiple resumes.
+- **Custom Squircle Icon**: Custom squircle (rounded square) launcher icon across Android, iOS, and Web.
+- **Glassmorphism Dark Mode**: Sleek dark and light themes powered by Riverpod state management.
+
+---
 
 ## 📦 GitHub Actions CI & Automated Releases
 Automated APK builds trigger on the `develop` branch with version numbers starting from `v0.1.x`. Every push to `develop` automatically creates a new version tag and publishes the compiled APK asset (`ResuMate-v0.1.x.apk`) directly to the [GitHub Releases](https://github.com/swastik2012/ResuMate/releases) tab for instant download.
