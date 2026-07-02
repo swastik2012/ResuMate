@@ -55,7 +55,7 @@ class DocxGenerator {
 
     final encoder = ZipEncoder();
     final bytes = encoder.encode(archive);
-    return Uint8List.fromList(bytes ?? []);
+    return Uint8List.fromList(bytes);
   }
 
   static void _addFileToArchive(Archive archive, String path, String content) {
