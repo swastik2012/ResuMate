@@ -9,7 +9,7 @@ if (file("google-services.json").exists() || file("src/release/google-services.j
 
 android {
     namespace = "com.resume.builder.resume_builder"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
