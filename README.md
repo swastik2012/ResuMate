@@ -10,8 +10,8 @@ An AI-powered, ATS-optimized, multi-template Resume Builder application built wi
 - **Multi-Resume Management**: Create, rename, duplicate, and manage multiple resumes.
 - **Custom Squircle Icon & Branding**: Modern design system and squircle launcher icon.
 
-## GitHub Actions CI
-Automated APK release builds trigger on the `develop` branch with version numbers starting from `0.1.0`.
+## 📦 GitHub Actions CI & Automated Releases
+Automated APK builds trigger on the `develop` branch with version numbers starting from `v0.1.x`. Every push to `develop` automatically creates a new version tag and publishes the compiled APK asset (`ResuMate-v0.1.x.apk`) directly to the [GitHub Releases](https://github.com/swastik2012/ResuMate/releases) tab for instant download.
 
 ---
 

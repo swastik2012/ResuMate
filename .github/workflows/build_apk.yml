@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build & Release Android APK
 
 on:
   push:
@@ -8,9 +8,12 @@ on:
     branches:
       - develop
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Release APK
+    name: Build & Publish Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -41,8 +44,30 @@ jobs:
       - name: Build Release APK (Version 0.1.x)
         run: flutter build apk --release --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }}
 
+      - name: Prepare APK Asset for Release
+        run: |
+          mkdir -p release_builds
+          cp build/app/outputs/flutter-apk/app-release.apk release_builds/ResuMate-v0.1.${{ github.run_number }}.apk
+
       - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ResuMate-v0.1.${{ github.run_number }}-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: release_builds/ResuMate-v0.1.${{ github.run_number }}.apk
+
+      - name: Create GitHub Release & Publish APK
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.${{ github.run_number }}
+          name: ResuMate Release v0.1.${{ github.run_number }}
+          body: |
+            ## ResuMate Release v0.1.${{ github.run_number }}
+            - Automated Android APK build from `develop` branch.
+            - Built with Flutter SDK & Java 17.
+            - Download `ResuMate-v0.1.${{ github.run_number }}.apk` below to install directly on Android.
+          files: release_builds/ResuMate-v0.1.${{ github.run_number }}.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
