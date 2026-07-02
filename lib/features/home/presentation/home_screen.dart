@@ -55,7 +55,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _importBackup(BuildContext context) async {
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         withData: true,
       );
