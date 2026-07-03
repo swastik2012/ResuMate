@@ -22,8 +22,8 @@ void main() {
   );
 }
 
-/// Root app widget. Shows SplashScreen first, then transitions to the
-/// authenticated destination once initialization finishes.
+/// Root app widget. Shows SplashScreen first, then reactively transitions to
+/// HomeScreen or LoginScreen based on authentication state changes.
 class ResuMateApp extends ConsumerStatefulWidget {
   const ResuMateApp({super.key});
 
@@ -32,30 +32,18 @@ class ResuMateApp extends ConsumerStatefulWidget {
 }
 
 class _ResuMateAppState extends ConsumerState<ResuMateApp> {
-  Widget _currentScreen = const SizedBox.shrink(); // placeholder; replaced immediately
-  bool _initialized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentScreen = SplashScreen(
-      onInitialize: _performInitialization,
-      onComplete: _onSplashComplete,
-    );
-  }
+  bool _splashCompleted = false;
 
   /// Runs all initialization work in parallel with tight timeouts.
   Future<bool> _performInitialization() async {
     // 1. Pre-warm SharedPreferences (disk I/O, independent of Firebase)
     // 2. Initialize Firebase (network, may timeout)
-    // Run both in parallel for speed.
     await Future.wait([
       _initFirebase(),
       SharedPreferences.getInstance(), // pre-warm cache
     ]);
 
     // 3. Wait for the auth provider to resolve from loading → data/error
-    //    with a safety timeout so we never hang.
     final isSignedIn = await _waitForAuth();
     return isSignedIn;
   }
@@ -105,17 +93,29 @@ class _ResuMateAppState extends ConsumerState<ResuMateApp> {
   }
 
   void _onSplashComplete(bool isSignedIn) {
-    if (!mounted || _initialized) return;
-    _initialized = true;
-
+    if (!mounted || _splashCompleted) return;
     setState(() {
-      _currentScreen = isSignedIn ? const HomeScreen() : const LoginScreen();
+      _splashCompleted = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeProvider);
+    final authState = ref.watch(authProvider);
+
+    Widget screen;
+    if (!_splashCompleted) {
+      screen = SplashScreen(
+        onInitialize: _performInitialization,
+        onComplete: _onSplashComplete,
+      );
+    } else {
+      screen = authState.maybeWhen(
+        data: (user) => user != null ? const HomeScreen() : const LoginScreen(),
+        orElse: () => const LoginScreen(),
+      );
+    }
 
     return MaterialApp(
       title: 'ResuMate',
@@ -130,7 +130,10 @@ class _ResuMateAppState extends ConsumerState<ResuMateApp> {
         transitionBuilder: (child, animation) {
           return FadeTransition(opacity: animation, child: child);
         },
-        child: _currentScreen,
+        child: KeyedSubtree(
+          key: ValueKey(screen.runtimeType),
+          child: screen,
+        ),
       ),
     );
   }
