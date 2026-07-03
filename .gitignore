@@ -32,6 +32,9 @@ migrate_working_dir/
 android/build/
 /coverage/
 lib/firebase_options.dart
+key.properties
+*.jks
+*.keystore
 # Symbolication related
 app.*.symbols
 
