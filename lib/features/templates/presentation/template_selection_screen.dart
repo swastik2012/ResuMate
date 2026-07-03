@@ -319,11 +319,21 @@ class _TemplateSelectionScreenState
                       Navigator.pop(ctx);
                       _selectTemplate(tpl.id, name: chosenName.isNotEmpty ? chosenName : null);
                     },
-                    icon: const Icon(Icons.check_rounded),
-                    label: const Text('Use This Template'),
+                    icon: const Icon(Icons.check_rounded, color: Colors.white),
+                    label: const Text(
+                      'Use This Template',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: tpl.color,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? Theme.of(context).colorScheme.primary
+                          : tpl.color,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
@@ -699,10 +709,12 @@ class _TemplateCard extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: info.color,
-                            borderRadius: BorderRadius.circular(6),
+                            color: theme.brightness == Brightness.dark
+                                ? theme.colorScheme.primary
+                                : info.color,
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
