@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:resume_builder/features/splash/presentation/splash_screen.dart';
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
-import 'package:resume_builder/core/utils/backup_service.dart';
-import 'package:resume_builder/core/utils/docx_generator.dart';
+import 'package:resumate/features/splash/presentation/splash_screen.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
+import 'package:resumate/core/utils/backup_service.dart';
+import 'package:resumate/core/utils/docx_generator.dart';
 
 void main() {
   testWidgets('Test SplashScreen renders brand elements', (WidgetTester tester) async {

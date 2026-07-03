@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:resume_builder/features/auth/data/auth_repository.dart';
+import 'package:resumate/features/auth/data/auth_repository.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return HybridAuthRepository();

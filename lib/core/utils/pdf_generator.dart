@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
 
 class PdfGenerator {
   static Future<Uint8List> generate(ResumeData resumeData) async {

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
 
 class ResumeListNotifier extends Notifier<List<SavedResume>> {
   static const _prefsKey = 'saved_resume_list';

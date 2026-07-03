@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
-import 'package:resume_builder/core/network/gemini_client.dart';
-import 'package:resume_builder/core/utils/pdf_generator.dart';
-import 'package:resume_builder/features/home/presentation/resume_list_provider.dart';
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
-import 'package:resume_builder/features/resume/presentation/workspace_screen.dart';
+import 'package:resumate/core/network/gemini_client.dart';
+import 'package:resumate/core/utils/pdf_generator.dart';
+import 'package:resumate/features/home/presentation/resume_list_provider.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
+import 'package:resumate/features/resume/presentation/workspace_screen.dart';
 
 class TemplateSelectionScreen extends ConsumerStatefulWidget {
   final bool startWithImport;

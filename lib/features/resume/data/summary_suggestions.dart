@@ -1,4 +1,4 @@
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
 
 class SummaryTemplate {
   final String category;

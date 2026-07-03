@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:resume_builder/firebase_options.dart';
-import 'package:resume_builder/core/theme/app_theme.dart';
-import 'package:resume_builder/core/theme/theme_provider.dart';
-import 'package:resume_builder/features/auth/presentation/auth_provider.dart';
-import 'package:resume_builder/features/auth/presentation/login_screen.dart';
-import 'package:resume_builder/features/home/presentation/home_screen.dart';
-import 'package:resume_builder/features/splash/presentation/splash_screen.dart';
+import 'package:resumate/firebase_options.dart';
+import 'package:resumate/core/theme/app_theme.dart';
+import 'package:resumate/core/theme/theme_provider.dart';
+import 'package:resumate/features/auth/presentation/auth_provider.dart';
+import 'package:resumate/features/auth/presentation/login_screen.dart';
+import 'package:resumate/features/home/presentation/home_screen.dart';
+import 'package:resumate/features/splash/presentation/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

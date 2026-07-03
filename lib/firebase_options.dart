@@ -46,6 +46,6 @@ class DefaultFirebaseOptions {
     projectId: 'resumebuilder-01',
     storageBucket: 'resumebuilder-01.firebasestorage.app',
     iosClientId: '716044738686-crtlnvfvpbqllmseunq2fqes0jjbddnb.apps.googleusercontent.com',
-    iosBundleId: 'com.resume.builder.resumeBuilder',
+    iosBundleId: 'com.resumate.app',
   );
 }

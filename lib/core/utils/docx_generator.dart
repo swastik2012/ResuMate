@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
 
 class DocxGenerator {
   /// Generates a valid Microsoft Word (.docx) file byte buffer from ResumeData
