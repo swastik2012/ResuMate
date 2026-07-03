@@ -38,15 +38,10 @@ class HybridAuthRepository implements AuthRepository {
 
   Future<GoogleSignIn> _ensureGoogleSignIn() async {
     if (_googleSignInInstance == null) {
-      final clientId = (DefaultFirebaseOptions.googleClientId.isNotEmpty && 
-                        DefaultFirebaseOptions.googleClientId != 'YOUR_GOOGLE_CLIENT_ID_HERE')
-          ? DefaultFirebaseOptions.googleClientId
-          : null;
       _googleSignInInstance = GoogleSignIn(
-        clientId: clientId,
+        serverClientId: DefaultFirebaseOptions.googleClientId,
         scopes: [
           'email',
-          'https://www.googleapis.com/auth/drive.file',
         ],
       );
     }
