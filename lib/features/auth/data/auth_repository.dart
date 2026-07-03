@@ -111,15 +111,29 @@ class HybridAuthRepository implements AuthRepository {
 
   @override
   Future<AuthUser> signInWithGoogle({bool forceMock = false}) async {
-    if (forceMock || _useMock || Firebase.apps.isEmpty) {
+    if (forceMock) {
       return _mockSignIn();
     }
 
     try {
+      if (Firebase.apps.isEmpty) {
+        try {
+          final options = DefaultFirebaseOptions.currentPlatform;
+          await Firebase.initializeApp(options: options);
+        } catch (_) {
+          await Firebase.initializeApp();
+        }
+      }
+
       final googleSignIn = await _ensureGoogleSignIn();
+      // Sign out cached google account to guarantee account chooser pop-up
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
-        throw Exception('Google Sign-In aborted by user.');
+        throw Exception('Google Sign-In cancelled by user.');
       }
       _googleSignInAccount = googleUser;
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -130,6 +144,7 @@ class HybridAuthRepository implements AuthRepository {
       final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
       final user = userCredential.user!;
       
+      _useMock = false;
       _currentUser = AuthUser(
         uid: user.uid,
         email: user.email ?? '',
