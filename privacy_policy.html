@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - ResuMate</title>
+    <meta name="description" content="Privacy Policy for ResuMate - AI-Powered, ATS-Optimized Resume Builder Application.">
+    <meta name="robots" content="index, follow">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #5C6BC0;
+            --primary-dark: #3F51B5;
+            --primary-glow: rgba(92, 107, 192, 0.35);
+            --bg-gradient: linear-gradient(135deg, #0F0C20 0%, #1A1040 40%, #0D1B3E 100%);
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #F3F4F6;
+            --text-muted: #9CA3AF;
+            --text-heading: #FFFFFF;
+            --accent: #7986CB;
+            --success: #10B981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding: 40px 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .app-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(92, 107, 192, 0.15);
+            border: 1px solid rgba(121, 134, 203, 0.3);
+            color: var(--accent);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .app-badge .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            letter-spacing: -0.025em;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #B8C6FF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .meta-info {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .meta-info span {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .content-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 36px;
+            margin-bottom: 28px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .content-card:hover {
+            border-color: rgba(121, 134, 203, 0.3);
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 22px;
+            background: var(--primary);
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: #D1D5DB;
+            font-size: 1rem;
+        }
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        ul {
+            list-style: none;
+            margin-bottom: 16px;
+        }
+
+        li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 10px;
+            color: #D1D5DB;
+        }
+
+        li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .highlight-box {
+            background: rgba(92, 107, 192, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: #E5E7EB;
+            font-size: 0.95rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 32px 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--card-border);
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 20px 12px;
+            }
+            header {
+                padding: 28px 16px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .content-card {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="app-badge">
+                <span class="dot"></span> Official Privacy Policy
+            </div>
+            <h1>ResuMate</h1>
+            <p class="meta-info">
+                Application Package: <span>com.resumate.app</span> | Last Updated: <span>July 3, 2026</span>
+            </p>
+        </header>
+
+        <!-- Executive Summary -->
+        <div class="content-card">
+            <h2>1. Privacy Commitment & Offline-First Principles</h2>
+            <p>
+                Welcome to <strong>ResuMate</strong> ("we," "our," or "the Application"). We are deeply committed to protecting your personal privacy and maintaining complete data security. ResuMate is designed as an <strong>offline-first application</strong>—your personal resume content, employment history, contact information, and documents remain stored locally on your device unless explicitly exported or synchronized by you.
+            </p>
+            <div class="highlight-box">
+                <p>
+                    <strong>Key Privacy Promise:</strong> ResuMate does not sell, rent, monetize, or track your personal resume data or contact details to third-party data brokers or advertisers.
+                </p>
+            </div>
+        </div>
+
+        <!-- Information We Collect -->
+        <div class="content-card">
+            <h2>2. Information Stored & Handled</h2>
+            <p>ResuMate handles information strictly to enable resume creation, formatting, and AI analysis:</p>
+            <ul>
+                <li><strong>Local Resume Data:</strong> Full Name, Email, Phone Number, Work Experience, Education, Skills, and Custom Sections entered by you are saved in isolated device local storage (SharedPreferences).</li>
+                <li><strong>Optional Authentication Data:</strong> If you choose to sign in via Google Sign-In / Firebase Authentication, we store your basic profile identity (display name, email address, profile picture URL) strictly to manage your account session.</li>
+                <li><strong>AI Request Data:</strong> Raw resume text or prompt queries sent to the Google Gemini API for resume extraction or ATS scoring are processed ephemerally by Google's API to generate structured suggestions.</li>
+                <li><strong>API Keys:</strong> User-provided Google Gemini API keys are saved locally on your device and are never transmitted to any external servers other than official Google AI endpoints.</li>
+            </ul>
+        </div>
+
+        <!-- How We Use Information -->
+        <div class="content-card">
+            <h2>3. How Your Information Is Used</h2>
+            <p>The information handled within ResuMate is used solely for the following purposes:</p>
+            <ul>
+                <li>Generating and rendering 8 ATS-optimized PDF and Microsoft Word (.docx) resume files.</li>
+                <li>Providing intelligent AI resume parsing, ATS scoring, and bullet-point suggestions.</li>
+                <li>Creating encrypted offline backup files (.resumate) for 1-tap data restoration.</li>
+                <li>Maintaining authenticated user sessions via Firebase Auth when enabled.</li>
+            </ul>
+        </div>
+
+        <!-- Third-Party Services -->
+        <div class="content-card">
+            <h2>4. Third-Party Services & Integrations</h2>
+            <p>ResuMate integrates with trusted Google developer services to power specific features:</p>
+            <ul>
+                <li><strong>Google Play Services:</strong> Core application execution, APK delivery, and updates.</li>
+                <li><strong>Firebase Authentication:</strong> Secure user sign-in and session management (<a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy Policy</a>).</li>
+                <li><strong>Google Gemini API:</strong> Generative AI resume extraction and analysis (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>).</li>
+            </ul>
+            <p>We do not integrate with third-party tracking SDKs, ad networks, or invasive analytics tools.</p>
+        </div>
+
+        <!-- Data Retention & Deletion -->
+        <div class="content-card">
+            <h2>5. Data Control & Deletion Rights</h2>
+            <p>You have full ownership and control over your data at all times:</p>
+            <ul>
+                <li><strong>In-App Deletion:</strong> You can edit or delete individual resumes at any time directly within the ResuMate dashboard.</li>
+                <li><strong>Complete Wipe:</strong> Clearing app data or uninstalling ResuMate from your Android device immediately and permanently deletes all stored resume data and local backups.</li>
+                <li><strong>Account Sign-Out:</strong> You can sign out of Google / Firebase authentication anytime via the account menu.</li>
+            </ul>
+        </div>
+
+        <!-- Security -->
+        <div class="content-card">
+            <h2>6. Security Measures</h2>
+            <p>
+                ResuMate implements industry-standard security practices to safeguard your data. All network communications with Google APIs use TLS/HTTPS encryption. Backup files utilize schema-signature validation to prevent file tampering or corruption.
+            </p>
+        </div>
+
+        <!-- Children's Privacy -->
+        <div class="content-card">
+            <h2>7. Children's Privacy</h2>
+            <p>
+                ResuMate is not directed at children under the age of 13. We do not knowingly collect personal information from children. If you believe a child has provided us with personal data, please contact us for immediate removal.
+            </p>
+        </div>
+
+        <!-- Changes to Policy -->
+        <div class="content-card">
+            <h2>8. Changes to This Privacy Policy</h2>
+            <p>
+                We may update our Privacy Policy periodically. Any updates will be reflected on this page with an updated "Last Updated" revision date.
+            </p>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="content-card">
+            <h2>9. Contact & Inquiries</h2>
+            <p>
+                If you have any questions, feedback, or privacy inquiries regarding ResuMate, please reach out via GitHub:
+            </p>
+            <p>
+                <strong>Repository Owner:</strong> <a href="https://github.com/swastik2012/ResuMate" target="_blank" rel="noopener">github.com/swastik2012/ResuMate</a>
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>© 2026 ResuMate. All Rights Reserved. | Package: <code>com.resumate.app</code></p>
+        </footer>
+    </div>
+
+</body>
+</html>

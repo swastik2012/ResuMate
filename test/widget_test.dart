@@ -1,33 +1,47 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:resume_builder/main.dart';
-import 'package:resume_builder/features/auth/presentation/login_screen.dart';
-import 'package:resume_builder/features/home/presentation/home_screen.dart';
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
-import 'package:resume_builder/core/utils/backup_service.dart';
-import 'package:resume_builder/core/utils/docx_generator.dart';
+import 'package:resumate/features/splash/presentation/splash_screen.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
+import 'package:resumate/core/utils/backup_service.dart';
+import 'package:resumate/core/utils/docx_generator.dart';
 
 void main() {
-  testWidgets('Test sign in with mock fallback and guest mode', (WidgetTester tester) async {
+  testWidgets('Test SplashScreen renders brand elements', (WidgetTester tester) async {
+    bool initCalled = false;
+
+    final navigatorKey = GlobalKey<NavigatorState>();
+
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MyApp(),
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        home: SplashScreen(
+          onInitialize: () async {
+            initCalled = true;
+            return false;
+          },
+          onComplete: (isSignedIn) {
+            // Navigate away to dispose the splash screen and stop animations
+            navigatorKey.currentState?.pushReplacement(
+              MaterialPageRoute(builder: (_) => const Scaffold(body: Text('Done'))),
+            );
+          },
+        ),
       ),
     );
 
-    // Let the initial stream subscription event fire and rebuild
+    // Initial render
     await tester.pump();
+    expect(find.text('ResuMate'), findsOneWidget);
+    expect(find.text('AI-Powered Resume Builder'), findsOneWidget);
+    expect(initCalled, isTrue);
 
-    expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.text('Try Demo Account'), findsOneWidget);
+    // Advance time to complete the minimum 2.2s timer + init
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 200));
 
-    // Click on the Try Demo Account button
-    await tester.tap(find.text('Try Demo Account'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump();
-
-    expect(find.byType(HomeScreen), findsOneWidget);
+    // Now the splash should have navigated away; pump to settle
+    await tester.pumpAndSettle();
+    expect(find.text('Done'), findsOneWidget);
   });
 
   test('Test BackupService export and import roundtrip', () {

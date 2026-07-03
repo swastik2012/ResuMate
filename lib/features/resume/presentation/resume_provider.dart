@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:resume_builder/core/utils/pdf_generator.dart';
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
+import 'package:resumate/core/utils/pdf_generator.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
 
 class ResumeNotifier extends Notifier<ResumeData> {
   static const _prefsKey = 'saved_resume_data';

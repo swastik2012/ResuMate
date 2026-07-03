@@ -4,17 +4,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:printing/printing.dart';
-import 'package:resume_builder/core/theme/theme_provider.dart';
-import 'package:resume_builder/core/utils/pdf_generator.dart';
-import 'package:resume_builder/core/utils/file_helper.dart';
-import 'package:resume_builder/core/utils/docx_generator.dart';
-import 'package:resume_builder/features/auth/presentation/auth_provider.dart';
-import 'package:resume_builder/features/resume/domain/resume_model.dart';
-import 'package:resume_builder/features/resume/presentation/resume_provider.dart';
-import 'package:resume_builder/features/resume/data/summary_suggestions.dart';
-import 'package:resume_builder/features/ai_assistant/presentation/ai_chat_sheet.dart';
-import 'package:resume_builder/features/home/presentation/resume_list_provider.dart';
-import 'package:resume_builder/core/network/gemini_client.dart';
+import 'package:resumate/core/theme/theme_provider.dart';
+import 'package:resumate/core/utils/pdf_generator.dart';
+import 'package:resumate/core/utils/file_helper.dart';
+import 'package:resumate/core/utils/docx_generator.dart';
+import 'package:resumate/features/auth/presentation/auth_provider.dart';
+import 'package:resumate/features/resume/domain/resume_model.dart';
+import 'package:resumate/features/resume/presentation/resume_provider.dart';
+import 'package:resumate/features/resume/data/summary_suggestions.dart';
+import 'package:resumate/features/ai_assistant/presentation/ai_chat_sheet.dart';
+import 'package:resumate/features/home/presentation/resume_list_provider.dart';
+import 'package:resumate/core/network/gemini_client.dart';
 
 class WorkspaceScreen extends ConsumerStatefulWidget {
   final String? resumeId;

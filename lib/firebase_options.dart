@@ -2,8 +2,8 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class DefaultFirebaseOptions {
-  // Google Client ID for Web Google Sign-In
-  static const String googleClientId = 'YOUR_GOOGLE_CLIENT_ID_HERE';
+  // Google Client ID for Web / Android Google Sign-In
+  static const String googleClientId = '716044738686-t3deac0d5lvg29ukjim8ivs4jlvk88lq.apps.googleusercontent.com';
 
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -46,6 +46,6 @@ class DefaultFirebaseOptions {
     projectId: 'resumebuilder-01',
     storageBucket: 'resumebuilder-01.firebasestorage.app',
     iosClientId: '716044738686-crtlnvfvpbqllmseunq2fqes0jjbddnb.apps.googleusercontent.com',
-    iosBundleId: 'com.resume.builder.resumeBuilder',
+    iosBundleId: 'com.resumate.app',
   );
 }
