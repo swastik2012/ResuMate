@@ -35,9 +35,14 @@ class ResumeListNotifier extends Notifier<List<SavedResume>> {
 
   /// Migrate legacy single-resume data into the list on first launch
   Future<void> migrateLegacyData() async {
-    if (state.isNotEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
+      
+      // If we already have a saved list in SharedPreferences, do NOT migrate again.
+      // This prevents a race condition where migrateLegacyData runs before _loadFromPrefs finishes
+      // and overwrites the newly saved resumes with the legacy resume.
+      if (prefs.containsKey(_prefsKey)) return;
+
       final raw = prefs.getString('saved_resume_data');
       if (raw != null) {
         final data = ResumeData.fromJson(json.decode(raw));

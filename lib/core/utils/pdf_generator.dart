@@ -92,19 +92,10 @@ class PdfGenerator {
                       ),
                     ),
                     pw.SizedBox(height: 6),
-                    pw.Text(
-                      [
-                        if (resumeData.personalInfo.email.isNotEmpty) resumeData.personalInfo.email,
-                        if (resumeData.personalInfo.phoneNumber.isNotEmpty) resumeData.personalInfo.phoneNumber,
-                        if (resumeData.personalInfo.location.isNotEmpty) resumeData.personalInfo.location,
-                        if (resumeData.personalInfo.website.isNotEmpty) resumeData.personalInfo.website,
-                        if (resumeData.personalInfo.github.isNotEmpty) resumeData.personalInfo.github,
-                      ].join('  |  '),
-                      style: pw.TextStyle(
-                        font: baseFont,
-                        fontSize: 9.0,
-                        color: PdfColor.fromHex('#FFFFFF'),
-                      ),
+                    _buildContactRow(
+                      resumeData,
+                      pw.TextStyle(font: baseFont, fontSize: 9.0, color: PdfColor.fromHex('#FFFFFF')),
+                      pw.WrapAlignment.start,
                     ),
                   ],
                 ),
@@ -132,16 +123,10 @@ class PdfGenerator {
                   pw.SizedBox(height: 4),
                   pw.Container(height: 2, width: 80, color: goldAccent),
                   pw.SizedBox(height: 6),
-                  pw.Text(
-                    [
-                      if (resumeData.personalInfo.email.isNotEmpty) resumeData.personalInfo.email,
-                      if (resumeData.personalInfo.phoneNumber.isNotEmpty) resumeData.personalInfo.phoneNumber,
-                      if (resumeData.personalInfo.location.isNotEmpty) resumeData.personalInfo.location,
-                      if (resumeData.personalInfo.website.isNotEmpty) resumeData.personalInfo.website,
-                      if (resumeData.personalInfo.github.isNotEmpty) resumeData.personalInfo.github,
-                    ].join('  |  '),
-                    style: pw.TextStyle(font: baseFont, fontSize: 9.0, color: accentColor),
-                    textAlign: pw.TextAlign.center,
+                  _buildContactRow(
+                    resumeData,
+                    pw.TextStyle(font: baseFont, fontSize: 9.0, color: accentColor),
+                    pw.WrapAlignment.center,
                   ),
                   pw.SizedBox(height: 8),
                   pw.Divider(color: primaryColor, thickness: 1.5),
@@ -169,20 +154,10 @@ class PdfGenerator {
                     ),
                   ),
                   pw.SizedBox(height: 4),
-                  pw.Text(
-                    [
-                      if (resumeData.personalInfo.email.isNotEmpty) resumeData.personalInfo.email,
-                      if (resumeData.personalInfo.phoneNumber.isNotEmpty) resumeData.personalInfo.phoneNumber,
-                      if (resumeData.personalInfo.location.isNotEmpty) resumeData.personalInfo.location,
-                      if (resumeData.personalInfo.website.isNotEmpty) resumeData.personalInfo.website,
-                      if (resumeData.personalInfo.github.isNotEmpty) resumeData.personalInfo.github,
-                    ].join('  |  '),
-                    style: pw.TextStyle(
-                      font: baseFont,
-                      fontSize: 9.0,
-                      color: accentColor,
-                    ),
-                    textAlign: isClassic ? pw.TextAlign.center : pw.TextAlign.left,
+                  _buildContactRow(
+                    resumeData,
+                    pw.TextStyle(font: baseFont, fontSize: 9.0, color: accentColor),
+                    isClassic ? pw.WrapAlignment.center : pw.WrapAlignment.start,
                   ),
                   pw.SizedBox(height: 8),
                   pw.Divider(color: primaryColor, thickness: isClassic ? 1.5 : (isAtsClean ? 0.5 : 1.0)),
@@ -257,6 +232,7 @@ class PdfGenerator {
                                 9,
                                 textColor,
                                 1.8,
+                                forceBullets: true,
                               ),
                             ),
                         ],
@@ -351,9 +327,17 @@ class PdfGenerator {
                                 style: pw.TextStyle(font: boldFont, fontSize: 10, color: textColor),
                               ),
                               if (proj.link.isNotEmpty)
-                                pw.Text(
-                                  proj.link,
-                                  style: pw.TextStyle(font: italicFont, fontSize: 8.5, color: primaryColor),
+                                pw.UrlLink(
+                                  destination: proj.link.startsWith('http') ? proj.link : 'https://${proj.link}',
+                                  child: pw.Text(
+                                    proj.link,
+                                    style: pw.TextStyle(
+                                      font: italicFont, 
+                                      fontSize: 8.5, 
+                                      color: primaryColor,
+                                      decoration: pw.TextDecoration.underline,
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
@@ -365,6 +349,7 @@ class PdfGenerator {
                               9,
                               textColor,
                               1.8,
+                              forceBullets: true,
                             ),
                         ],
                       ),
@@ -382,6 +367,7 @@ class PdfGenerator {
                         9,
                         textColor,
                         1.8,
+                        forceBullets: true,
                       )
                     ];
                     contentWidgets.add(
@@ -409,6 +395,7 @@ class PdfGenerator {
                           9,
                           textColor,
                           1.8,
+                          forceBullets: true,
                         )
                       ];
                       contentWidgets.add(
@@ -538,6 +525,7 @@ class PdfGenerator {
     double fontSize,
     PdfColor textColor,
     double lineSpacing,
+    {bool forceBullets = false}
   ) {
     final lines = text.split('\n').map((l) => l.trim()).toList();
     if (lines.length <= 1 &&
@@ -560,10 +548,18 @@ class PdfGenerator {
       children: lines.map((line) {
         if (line.isEmpty) return pw.SizedBox(height: 2);
 
-        bool isBullet = line.startsWith('•') || line.startsWith('-') || line.startsWith('*');
+        final bulletChars = ['•', '-', '*', '○', '', '⁃', '·', '', '➔', '\u2022', '\u25CB', '\u25A0', '\u2013', '\u2014'];
+        bool isBullet = forceBullets;
         String cleanedText = line;
-        if (isBullet) {
-          cleanedText = line.substring(1).trim();
+        
+        for (final b in bulletChars) {
+          if (cleanedText.startsWith(b)) {
+            isBullet = true;
+            while (cleanedText.isNotEmpty && (bulletChars.contains(cleanedText[0]) || cleanedText[0] == ' ')) {
+              cleanedText = cleanedText.substring(1);
+            }
+            break;
+          }
         }
 
         if (isBullet) {
@@ -664,15 +660,15 @@ class PdfGenerator {
                     pw.Text('CONTACT', style: pw.TextStyle(font: boldFont, fontSize: 9, color: sidebarAccent, letterSpacing: 1.5)),
                     pw.SizedBox(height: 6),
                     if (resumeData.personalInfo.email.isNotEmpty)
-                      _sidebarContactRow('Email: ', resumeData.personalInfo.email, baseFont, sidebarText),
+                      _sidebarContactRow('Email: ', resumeData.personalInfo.email, baseFont, sidebarText, link: resumeData.personalInfo.email),
                     if (resumeData.personalInfo.phoneNumber.isNotEmpty)
                       _sidebarContactRow('Phone: ', resumeData.personalInfo.phoneNumber, baseFont, sidebarText),
                     if (resumeData.personalInfo.location.isNotEmpty)
                       _sidebarContactRow('Loc: ', resumeData.personalInfo.location, baseFont, sidebarText),
                     if (resumeData.personalInfo.website.isNotEmpty)
-                      _sidebarContactRow('Web: ', resumeData.personalInfo.website, baseFont, sidebarText),
+                      _sidebarContactRow('Web: ', resumeData.personalInfo.website, baseFont, sidebarText, link: resumeData.personalInfo.website),
                     if (resumeData.personalInfo.github.isNotEmpty)
-                      _sidebarContactRow('GitHub: ', resumeData.personalInfo.github, baseFont, sidebarText),
+                      _sidebarContactRow('GitHub: ', resumeData.personalInfo.github, baseFont, sidebarText, link: resumeData.personalInfo.github),
 
                     pw.SizedBox(height: 18),
 
@@ -777,7 +773,7 @@ class PdfGenerator {
                               if (exp.description.isNotEmpty)
                                 pw.Padding(
                                   padding: const pw.EdgeInsets.only(left: 6),
-                                  child: _buildBulletOrParagraphText(exp.description, baseFont, 9, mainText, 1.8),
+                                  child: _buildBulletOrParagraphText(exp.description, baseFont, 9, mainText, 1.8, forceBullets: true),
                                 ),
                             ],
                           ),
@@ -801,7 +797,7 @@ class PdfGenerator {
                               if (proj.description.isNotEmpty)
                                 pw.Padding(
                                   padding: const pw.EdgeInsets.only(left: 6, top: 2),
-                                  child: _buildBulletOrParagraphText(proj.description, baseFont, 9, mainText, 1.6),
+                                  child: _buildBulletOrParagraphText(proj.description, baseFont, 9, mainText, 1.6, forceBullets: true),
                                 ),
                             ],
                           ),
@@ -817,7 +813,7 @@ class PdfGenerator {
                           pw.SizedBox(height: 2),
                           pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
                           pw.SizedBox(height: 6),
-                          _buildBulletOrParagraphText(cs.content, baseFont, 9, mainText, 1.8),
+                          _buildBulletOrParagraphText(cs.content, baseFont, 9, mainText, 1.8, forceBullets: true),
                           pw.SizedBox(height: 10),
                         ],
                       )),
@@ -834,13 +830,69 @@ class PdfGenerator {
     return pdf.save();
   }
 
-  static pw.Widget _sidebarContactRow(String label, String text, pw.Font font, PdfColor color) {
+  static pw.Widget _sidebarContactRow(String label, String text, pw.Font font, PdfColor color, {String? link}) {
+    if (link != null) {
+      final url = link.startsWith('http') || link.startsWith('mailto:') 
+          ? link 
+          : (link.contains('@') ? 'mailto:$link' : 'https://$link');
+      return pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 4),
+        child: pw.UrlLink(
+          destination: url,
+          child: pw.Text(
+            '$label$text',
+            style: pw.TextStyle(font: font, fontSize: 8, color: color, decoration: pw.TextDecoration.underline),
+          ),
+        ),
+      );
+    }
     return pw.Padding(
       padding: const pw.EdgeInsets.only(bottom: 4),
       child: pw.Text(
         '$label$text',
         style: pw.TextStyle(font: font, fontSize: 8, color: color),
       ),
+    );
+  }
+
+  static pw.Widget _buildContactRow(ResumeData resumeData, pw.TextStyle style, pw.WrapAlignment alignment) {
+    final List<pw.Widget> children = [];
+
+    void addText(String text, {String? link}) {
+      if (text.isEmpty) return;
+      if (children.isNotEmpty) {
+        children.add(pw.Text('  |  ', style: style.copyWith(decoration: pw.TextDecoration.none)));
+      }
+      if (link != null) {
+        final url = link.startsWith('http') || link.startsWith('mailto:') 
+            ? link 
+            : (link.contains('@') ? 'mailto:$link' : 'https://$link');
+        children.add(pw.UrlLink(
+          destination: url,
+          child: pw.Text(
+            text,
+            style: style.copyWith(
+              decoration: pw.TextDecoration.underline,
+            ),
+          ),
+        ));
+      } else {
+        children.add(pw.Text(text, style: style));
+      }
+    }
+
+    addText(resumeData.personalInfo.email, link: resumeData.personalInfo.email);
+    addText(resumeData.personalInfo.phoneNumber);
+    addText(resumeData.personalInfo.location);
+    addText(resumeData.personalInfo.website, link: resumeData.personalInfo.website);
+    addText(resumeData.personalInfo.github, link: resumeData.personalInfo.github);
+
+    if (children.isEmpty) return pw.SizedBox();
+
+    return pw.Wrap(
+      alignment: alignment,
+      crossAxisAlignment: pw.WrapCrossAlignment.center,
+      children: children,
     );
   }
 }

@@ -23,7 +23,7 @@ class LoginScreen extends ConsumerWidget {
                     theme.colorScheme.surfaceContainerLow,
                   ]
                 : [
-                    theme.colorScheme.primaryContainer.withOpacity(0.15),
+                    theme.colorScheme.primaryContainer.withValues(alpha: 0.15),
                     theme.colorScheme.surface,
                   ],
           ),
@@ -35,7 +35,7 @@ class LoginScreen extends ConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 420),
               child: Card(
                 elevation: 8,
-                shadowColor: theme.colorScheme.shadow.withOpacity(0.08),
+                shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.08),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
                 ),
@@ -95,7 +95,7 @@ class LoginScreen extends ConsumerWidget {
                           },
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: theme.colorScheme.outline.withOpacity(0.5),
+                              color: theme.colorScheme.outline.withValues(alpha: 0.5),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),

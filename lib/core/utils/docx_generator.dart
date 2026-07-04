@@ -106,8 +106,14 @@ class DocxGenerator {
           final lines = exp.description.split('\n').where((l) => l.trim().isNotEmpty);
           for (final line in lines) {
             var cleanLine = line.trim();
-            if (cleanLine.startsWith('•') || cleanLine.startsWith('-')) {
-              cleanLine = cleanLine.substring(1).trim();
+            final bulletChars = ['•', '-', '*', '○', '', '⁃', '·', '', '➔', '\u2022', '\u25CB', '\u25A0', '\u2013', '\u2014'];
+            for (final b in bulletChars) {
+              if (cleanLine.startsWith(b)) {
+                while (cleanLine.isNotEmpty && (bulletChars.contains(cleanLine[0]) || cleanLine[0] == ' ')) {
+                  cleanLine = cleanLine.substring(1);
+                }
+                break;
+              }
             }
             sb.write(_bullet(cleanLine));
           }
@@ -141,7 +147,20 @@ class DocxGenerator {
       for (final proj in data.projects) {
         sb.write(_subHeading(proj.name, proj.link, ''));
         if (proj.description.isNotEmpty) {
-          sb.write(_p(proj.description, size: 22, spaceAfter: 120));
+          final lines = proj.description.split('\n').where((l) => l.trim().isNotEmpty);
+          for (final line in lines) {
+            var cleanLine = line.trim();
+            final bulletChars = ['•', '-', '*', '○', '', '⁃', '·', '', '➔', '\u2022', '\u25CB', '\u25A0', '\u2013', '\u2014'];
+            for (final b in bulletChars) {
+              if (cleanLine.startsWith(b)) {
+                while (cleanLine.isNotEmpty && (bulletChars.contains(cleanLine[0]) || cleanLine[0] == ' ')) {
+                  cleanLine = cleanLine.substring(1);
+                }
+                break;
+              }
+            }
+            sb.write(_bullet(cleanLine));
+          }
         }
       }
     }
@@ -153,8 +172,19 @@ class DocxGenerator {
         final lines = cs.content.split('\n').where((l) => l.trim().isNotEmpty);
         for (final line in lines) {
           var cleanLine = line.trim();
-          if (cleanLine.startsWith('•') || cleanLine.startsWith('-')) {
-            cleanLine = cleanLine.substring(1).trim();
+          final bulletChars = ['•', '-', '*', '○', '', '⁃', '·', '', '➔', '\u2022', '\u25CB', '\u25A0', '\u2013', '\u2014'];
+          bool isBullet = false;
+          for (final b in bulletChars) {
+            if (cleanLine.startsWith(b)) {
+              isBullet = true;
+              while (cleanLine.isNotEmpty && (bulletChars.contains(cleanLine[0]) || cleanLine[0] == ' ')) {
+                cleanLine = cleanLine.substring(1);
+              }
+              break;
+            }
+          }
+          
+          if (isBullet) {
             sb.write(_bullet(cleanLine));
           } else {
             sb.write(_p(cleanLine, size: 22, spaceAfter: 100));

@@ -33,7 +33,7 @@ class _AiChatSheetState extends ConsumerState<AiChatSheet> {
   void initState() {
     super.initState();
     final client = ref.read(geminiClientProvider);
-    _apiKeyController = TextEditingController(text: client.apiKey ?? '');
+    _apiKeyController = TextEditingController(text: client.userApiKey ?? '');
   }
 
   @override
@@ -202,7 +202,7 @@ class _AiChatSheetState extends ConsumerState<AiChatSheet> {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: theme.colorScheme.error.withOpacity(0.3)),
+                side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.3)),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -226,7 +226,7 @@ class _AiChatSheetState extends ConsumerState<AiChatSheet> {
                     Text(
                       'Sign in with Google to unlock Gemini AI assistant optimizations, keyword scanning, and professional resume tailoring.',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onErrorContainer.withOpacity(0.8),
+                        color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.8),
                         height: 1.4,
                       ),
                     ),
@@ -324,7 +324,7 @@ class _AiChatSheetState extends ConsumerState<AiChatSheet> {
                                         child: CircularProgressIndicator(
                                           value: res.score / 100,
                                           strokeWidth: 6,
-                                          backgroundColor: scoreColor.withOpacity(0.15),
+                                          backgroundColor: scoreColor.withValues(alpha: 0.15),
                                           valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                                         ),
                                       ),
@@ -382,7 +382,7 @@ class _AiChatSheetState extends ConsumerState<AiChatSheet> {
                                       label: Text(w, style: const TextStyle(fontSize: 10)),
                                       padding: EdgeInsets.zero,
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      backgroundColor: theme.colorScheme.errorContainer.withOpacity(0.4),
+                                      backgroundColor: theme.colorScheme.errorContainer.withValues(alpha: 0.4),
                                       side: BorderSide.none,
                                     );
                                   }).toList(),

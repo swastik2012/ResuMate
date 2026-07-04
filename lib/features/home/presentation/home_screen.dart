@@ -21,6 +21,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _isNavigating = false;
+  
   @override
   void initState() {
     super.initState();
@@ -420,12 +422,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _openResume(BuildContext context, String resumeId) {
-    Navigator.of(context).push(
+  void _openResume(BuildContext context, String resumeId) async {
+    if (_isNavigating) return;
+    setState(() => _isNavigating = true);
+    
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => WorkspaceScreen(resumeId: resumeId),
       ),
     );
+    
+    if (mounted) {
+      setState(() => _isNavigating = false);
+    }
   }
 
   void _showRenameDialog(BuildContext context, SavedResume resume) {

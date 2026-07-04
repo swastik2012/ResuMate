@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:resumate/core/network/gemini_client.dart';
@@ -79,7 +80,7 @@ $jd
         actionPlan: data['actionPlan'] ?? 'Optimize your keywords to match the target description.',
       );
     } catch (e) {
-      print('AI ATS analysis failed: $e. Defaulting to local heuristic search.');
+      debugPrint('AI ATS analysis failed: $e. Defaulting to local heuristic search.');
       return _runHeuristicAnalysis(resumeData, jd);
     }
   }

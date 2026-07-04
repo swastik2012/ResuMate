@@ -1,12 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:google_generative_ai/google_generative_ai.dart' as google_ai;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_ai/firebase_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 class GeminiClient {
   static const _prefsKey = 'user_gemini_api_key';
+  
+  // Default built-in Gemini API key (or pass via --dart-define=GEMINI_API_KEY=your_key)
+  static const String _defaultAppKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+    defaultValue: '',
+  );
+  
   String? _userApiKey;
 
   GeminiClient() {
@@ -15,11 +25,6 @@ class GeminiClient {
 
   Future<void> _loadKey() async {
     try {
-      const envKey = String.fromEnvironment('GEMINI_API_KEY');
-      if (envKey.isNotEmpty) {
-        _userApiKey = envKey;
-        return;
-      }
       final prefs = await SharedPreferences.getInstance();
       final savedKey = prefs.getString(_prefsKey);
       if (savedKey != null && savedKey.trim().isNotEmpty) {
@@ -36,9 +41,11 @@ class GeminiClient {
     } catch (_) {}
   }
 
-  String? get apiKey => _userApiKey;
+  String? get userApiKey => _userApiKey;
 
-  bool get hasValidKey => _userApiKey != null && _userApiKey!.trim().isNotEmpty;
+  String? get apiKey => _userApiKey ?? (_defaultAppKey.isNotEmpty ? _defaultAppKey : null);
+
+  bool get hasValidKey => (apiKey != null && apiKey!.trim().isNotEmpty) || FirebaseAuth.instance.currentUser != null;
 
   bool get isConfigured => hasValidKey;
 
@@ -46,37 +53,65 @@ class GeminiClient {
     setApiKey(key);
   }
 
-  /// Generate text using Gemini API or throws an exception on failure
+  /// Generate text using Firebase Vertex AI (Firebase AI Logic), standard Gemini SDK, or Bearer OAuth fallback.
   Future<String> generateText({
     required String prompt,
     double temperature = 0.2,
     String? googleAccessToken,
   }) async {
-    // 1. Try user API key if configured
-    if (hasValidKey) {
-      try {
-        final model = GenerativeModel(
-          model: 'gemini-1.5-flash',
-          apiKey: _userApiKey!.trim(),
-        );
-        final content = [Content.text(prompt)];
-        final response = await model.generateContent(
-          content,
-          generationConfig: GenerationConfig(temperature: temperature),
-        );
-        if (response.text != null && response.text!.isNotEmpty) {
-          return response.text!;
+    Object? vertexError;
+
+    // 1. Try Firebase Vertex AI / Firebase AI Logic if user is signed in with Firebase (Google Login)
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      for (final modelName in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+        try {
+          final googleAI = FirebaseAI.googleAI(auth: FirebaseAuth.instance);
+          final vertexModel = googleAI.generativeModel(
+            model: modelName,
+            generationConfig: GenerationConfig(temperature: temperature),
+          );
+          final response = await vertexModel.generateContent([
+            Content.text(prompt),
+          ]);
+          if (response.text != null && response.text!.isNotEmpty) {
+            return response.text!;
+          }
+        } catch (e) {
+          vertexError = e;
+          debugPrint('Firebase Vertex AI generation with $modelName failed: $e.');
         }
-      } catch (e) {
-        print('Gemini SDK with API key failed: $e');
       }
     }
 
-    // 2. Try Google OAuth Access Token if user signed in with Google
+    // 2. Generate text using configured API Key (Custom User Key or App Default Key)
+    final activeKey = apiKey;
+    if (activeKey != null && activeKey.trim().isNotEmpty) {
+      for (final modelName in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+        try {
+          final model = google_ai.GenerativeModel(
+            model: modelName,
+            apiKey: activeKey.trim(),
+          );
+          final content = [google_ai.Content.text(prompt)];
+          final response = await model.generateContent(
+            content,
+            generationConfig: google_ai.GenerationConfig(temperature: temperature),
+          );
+          if (response.text != null && response.text!.isNotEmpty) {
+            return response.text!;
+          }
+        } catch (e) {
+          debugPrint('Gemini SDK generation with $modelName failed: $e');
+        }
+      }
+    }
+
+    // 3. Fallback: Google Access Token if provided
     if (googleAccessToken != null && googleAccessToken.isNotEmpty) {
       try {
         final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
         );
         final response = await http.post(
           url,
@@ -106,13 +141,85 @@ class GeminiClient {
           }
         }
       } catch (e) {
-        print('Gemini via OAuth Bearer token failed: $e');
+        debugPrint('Gemini via Bearer token failed: $e');
       }
     }
 
+    if (vertexError != null) {
+      throw Exception(
+        'AI Error: $vertexError\n\nPlease ensure Vertex AI is enabled in Firebase Console (https://console.firebase.google.com/), or enter an API key in AI Assistant settings.',
+      );
+    }
+
     throw Exception(
-      'Gemini API key is required for AI features. Please add your free Google AI Studio API key.',
+      'Gemini API key is required. Please sign in with Google or enter your free API key in AI Assistant settings.',
     );
+  }
+
+  /// Generate text from a multimodal PDF input.
+  Future<String> generateFromPdf({
+    required String prompt,
+    required Uint8List pdfBytes,
+    double temperature = 0.2,
+  }) async {
+    Object? vertexError;
+
+    // 1. Try Firebase Vertex AI / Firebase AI Logic
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      for (final modelName in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+        try {
+          final googleAI = FirebaseAI.googleAI(auth: FirebaseAuth.instance);
+          final vertexModel = googleAI.generativeModel(
+            model: modelName,
+            generationConfig: GenerationConfig(temperature: temperature),
+          );
+          final response = await vertexModel.generateContent([
+            Content.multi([
+              TextPart(prompt),
+              InlineDataPart('application/pdf', pdfBytes),
+            ]),
+          ]);
+          if (response.text != null && response.text!.isNotEmpty) {
+            return response.text!;
+          }
+        } catch (e) {
+          vertexError = e;
+          debugPrint('Firebase Vertex AI PDF generation with $modelName failed: $e.');
+        }
+      }
+    }
+
+    // 2. Try Standard Gemini API (Developer API) using an API key if provided
+    final activeKey = apiKey;
+    if (activeKey != null && activeKey.trim().isNotEmpty) {
+      for (final modelName in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']) {
+        try {
+          final model = google_ai.GenerativeModel(
+            model: modelName,
+            apiKey: activeKey.trim(),
+            generationConfig: google_ai.GenerationConfig(temperature: temperature),
+          );
+          final response = await model.generateContent([
+            google_ai.Content.multi([
+              google_ai.TextPart(prompt),
+              google_ai.DataPart('application/pdf', pdfBytes),
+            ]),
+          ]);
+          if (response.text != null && response.text!.isNotEmpty) {
+            return response.text!;
+          }
+        } catch (e) {
+          debugPrint('Gemini SDK PDF generation with $modelName failed: $e');
+        }
+      }
+    }
+
+    if (vertexError != null) {
+      throw Exception('AI Error: $vertexError');
+    }
+
+    throw Exception('Gemini API key or authenticated user is required for PDF parsing.');
   }
 }
 

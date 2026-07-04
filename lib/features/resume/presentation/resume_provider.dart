@@ -1,6 +1,5 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:resumate/core/utils/pdf_generator.dart';
@@ -22,10 +21,10 @@ class ResumeNotifier extends Notifier<ResumeData> {
       if (rawJson != null) {
         final Map<String, dynamic> data = json.decode(rawJson);
         state = ResumeData.fromJson(data);
-        print('Resume data loaded from local storage successfully.');
+        debugPrint('Resume data loaded from local storage successfully.');
       }
     } catch (e) {
-      print('Failed to load local resume data: $e');
+      debugPrint('Failed to load local resume data: $e');
     }
   }
 
@@ -34,7 +33,7 @@ class ResumeNotifier extends Notifier<ResumeData> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_prefsKey, json.encode(current.toJson()));
     } catch (e) {
-      print('Failed to persist resume data: $e');
+      debugPrint('Failed to persist resume data: $e');
     }
   }
 
@@ -221,5 +220,6 @@ final pdfBytesProvider = FutureProvider<Uint8List>((ref) async {
   // Wait for 400ms. If resumeData changes, Riverpod will automatically discard the previous future and re-run.
   await Future.delayed(const Duration(milliseconds: 400));
   
-  return PdfGenerator.generate(resumeData);
+  // Run heavy PDF layout in background isolate to keep UI smooth
+  return compute(PdfGenerator.generate, resumeData);
 });

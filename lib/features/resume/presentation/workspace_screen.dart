@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,7 @@ class WorkspaceScreen extends ConsumerStatefulWidget {
 
 class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isTransitioning = true;
 
   Future<void> _exportDocx(BuildContext context) async {
     final resumeData = ref.read(resumeProvider);
@@ -93,6 +95,13 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
         }
       });
     });
+    
+    // Defer rendering of heavy widgets until page transition completes
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        setState(() => _isTransitioning = false);
+      }
+    });
   }
 
   void _showDemoModeSignInDialog(BuildContext context) {
@@ -114,7 +123,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
               try {
                 await ref.read(authProvider.notifier).signInWithGoogle();
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Sign in failed: $e')),
                   );
@@ -169,7 +178,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
         body: body,
       );
 
-      if (!mounted) return;
+      if (!context.mounted) return;
       Navigator.of(context).pop(); // Dismiss loading
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -183,7 +192,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
         throw Exception('Server returned status code ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -411,6 +420,91 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
     return formCards;
   }
 
+  Widget _buildSkeletonLoader(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurface.withValues(alpha: 0.05);
+    final highlightColor = theme.colorScheme.onSurface.withValues(alpha: 0.1);
+
+    Widget buildSkeletonCard() {
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+                  ),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 150,
+                    height: 20,
+                    decoration: BoxDecoration(color: highlightColor, borderRadius: BorderRadius.circular(4)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                height: 48,
+                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.3, end: 1.0),
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutSine,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: child,
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildSkeletonCard(),
+          const SizedBox(height: 16),
+          buildSkeletonCard(),
+          const SizedBox(height: 16),
+          buildSkeletonCard(),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -493,8 +587,8 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                   } else {
                     final resumeData = ref.read(resumeProvider);
                     final fileName = '${resumeData.personalInfo.fullName.isNotEmpty ? resumeData.personalInfo.fullName.replaceAll(' ', '_') : 'My'}_Resume.pdf';
-                    final pdfBytes = await PdfGenerator.generate(resumeData);
-                    if (mounted) {
+                    final pdfBytes = await compute(PdfGenerator.generate, resumeData);
+                    if (context.mounted) {
                       await _uploadToGoogleDrive(context, pdfBytes, fileName);
                     }
                   }
@@ -601,10 +695,12 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                         color: theme.colorScheme.surfaceContainerLow,
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: _buildEditorSections(context, resume),
-                          ),
+                          child: _isTransitioning
+                              ? _buildSkeletonLoader(context)
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: _buildEditorSections(context, resume),
+                                ),
                         ),
                       ),
                     ),
@@ -612,7 +708,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                     VerticalDivider(
                       width: 1,
                       thickness: 1,
-                      color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
                     // Right PDF Preview Panel with Template Switcher
                     Expanded(
@@ -675,10 +771,12 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                         color: theme.colorScheme.surfaceContainerLow,
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: _buildEditorSections(context, resume),
-                          ),
+                          child: _isTransitioning
+                              ? _buildSkeletonLoader(context)
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: _buildEditorSections(context, resume),
+                                ),
                         ),
                       ),
                       // Mobile PDF Preview with Template Switcher
@@ -1076,7 +1174,7 @@ class _PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
                 child: ListView.separated(
                   controller: scrollController,
                   itemCount: suggestions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (context, index) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = suggestions[index];
                     return Card(
@@ -1244,7 +1342,7 @@ class _WorkExperienceItemState extends ConsumerState<WorkExperienceItem> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1418,7 +1516,7 @@ class _EducationItemState extends ConsumerState<EducationItem> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1570,7 +1668,7 @@ class _SkillItemState extends ConsumerState<SkillItem> {
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -1692,7 +1790,7 @@ class TemplateSelectorCard extends ConsumerWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1791,7 +1889,7 @@ class AtsCompletenessTracker extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1944,7 +2042,7 @@ class _ProjectItemState extends ConsumerState<ProjectItem> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -2081,7 +2179,7 @@ class _CustomSectionItemState extends ConsumerState<CustomSectionItem> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -2474,7 +2572,7 @@ $text
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -38,14 +39,13 @@ class HybridAuthRepository implements AuthRepository {
   GoogleSignInAccount? _googleSignInAccount;
 
   Future<GoogleSignIn> _ensureGoogleSignIn() async {
-    if (_googleSignInInstance == null) {
-      _googleSignInInstance = GoogleSignIn(
-        serverClientId: DefaultFirebaseOptions.googleClientId,
-        scopes: [
-          'email',
-        ],
-      );
-    }
+    _googleSignInInstance ??= GoogleSignIn(
+      serverClientId: DefaultFirebaseOptions.googleClientId,
+      scopes: [
+        'email',
+        'https://www.googleapis.com/auth/drive.file',
+      ],
+    );
     return _googleSignInInstance!;
   }
 
@@ -117,7 +117,7 @@ class HybridAuthRepository implements AuthRepository {
         _controller.add(null);
       }
     } catch (e) {
-      print('Firebase Auth init listener note: $e.');
+      debugPrint('Firebase Auth init listener note: $e.');
     }
   }
 
@@ -163,7 +163,7 @@ class HybridAuthRepository implements AuthRepository {
       }
       return await _googleSignInAccount!.authHeaders;
     } catch (e) {
-      print('Error getting auth headers: $e');
+      debugPrint('Error getting auth headers: $e');
       return null;
     }
   }
@@ -210,7 +210,7 @@ class HybridAuthRepository implements AuthRepository {
       _controller.add(_currentUser);
       return _currentUser!;
     } catch (e) {
-      print('Firebase Sign-In failed or unconfigured: $e.');
+      debugPrint('Firebase Sign-In failed or unconfigured: $e.');
       rethrow;
     }
   }

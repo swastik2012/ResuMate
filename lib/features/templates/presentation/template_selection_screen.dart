@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'package:syncfusion_flutter_pdf/pdf.dart' as sync_pdf;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import 'package:resumate/core/network/gemini_client.dart';
 import 'package:resumate/core/utils/pdf_generator.dart';
 import 'package:resumate/features/home/presentation/resume_list_provider.dart';
 import 'package:resumate/features/resume/domain/resume_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:resumate/features/resume/presentation/workspace_screen.dart';
 
 class TemplateSelectionScreen extends ConsumerStatefulWidget {
@@ -287,7 +290,7 @@ class _TemplateSelectionScreenState
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: PdfPreview(
-                    build: (format) => PdfGenerator.generate(sampleData),
+                    build: (format) => compute(PdfGenerator.generate, sampleData),
                     useActions: false,
                     allowPrinting: false,
                     allowSharing: false,
@@ -348,7 +351,7 @@ class _TemplateSelectionScreenState
   void _showAiImportDialog(BuildContext context) {
     final client = ref.read(geminiClientProvider);
     final textController = TextEditingController();
-    final apiKeyController = TextEditingController(text: client.apiKey ?? '');
+    final apiKeyController = TextEditingController(text: client.userApiKey ?? '');
     bool isLoading = false;
     String? statusMessage;
 
@@ -379,9 +382,10 @@ class _TemplateSelectionScreenState
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: apiKeyController,
+                      obscureText: true,
                       decoration: InputDecoration(
-                        labelText: 'Gemini API Key (Optional for AI Parsing)',
-                        hintText: 'Paste key from Google AI Studio (aistudio.google.com)',
+                        labelText: 'Gemini API Key (Optional)',
+                        hintText: 'Leave blank to use built-in AI key',
                         prefixIcon: const Icon(Icons.key_rounded, size: 18),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
@@ -433,14 +437,95 @@ class _TemplateSelectionScreenState
                         ),
                       )
                     else
-                      TextFormField(
-                        controller: textController,
-                        maxLines: 10,
-                        decoration: const InputDecoration(
-                          labelText: 'Paste raw resume text here',
-                          alignLabelWithHint: true,
-                          hintText: 'John Doe\njohn.doe@email.com | (555) 019-2834\n\nExperience:\nSenior Developer at Google...',
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextFormField(
+                              controller: textController,
+                              maxLines: 6,
+                              decoration: const InputDecoration(
+                                labelText: 'Paste raw resume text here',
+                                alignLabelWithHint: true,
+                                hintText: 'John Doe\njohn.doe@email.com...',
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          const Center(
+                            child: Text('OR', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.tonalIcon(
+                                  onPressed: () async {
+                                    final result = await FilePicker.platform.pickFiles(
+                                      type: FileType.custom,
+                                      allowedExtensions: ['pdf'],
+                                      withData: true,
+                                    );
+                                    if (result != null && result.files.single.bytes != null) {
+                                      final bytes = result.files.single.bytes!;
+                                      
+                                      if (apiKeyController.text.trim().isNotEmpty) {
+                                        await client.setApiKey(apiKeyController.text.trim());
+                                      }
+
+                                      setState(() {
+                                        isLoading = true;
+                                        statusMessage = 'Extracting from PDF...';
+                                      });
+
+                                      ResumeData parsedData;
+                                      try {
+                                        // On-device text extraction
+                                        final document = sync_pdf.PdfDocument(inputBytes: bytes);
+                                        final extractedText = sync_pdf.PdfTextExtractor(document).extractText();
+                                        document.dispose();
+
+                                        final prompt = _buildParsePrompt(extractedText);
+                                        final response = await client.generateText(prompt: prompt);
+                                        var clean = response.trim();
+                                        if (clean.startsWith('```json')) clean = clean.substring(7);
+                                        if (clean.startsWith('```')) clean = clean.substring(3);
+                                        if (clean.endsWith('```')) clean = clean.substring(0, clean.length - 3);
+                                        clean = clean.trim();
+                                        parsedData = ResumeData.fromJson(jsonDecode(clean));
+                                      } catch (e) {
+                                        // Fallback to offline parsing if API fails or parsing fails
+                                        try {
+                                          final document = sync_pdf.PdfDocument(inputBytes: bytes);
+                                          final extractedText = sync_pdf.PdfTextExtractor(document).extractText();
+                                          document.dispose();
+                                          parsedData = _parseResumeTextHeuristically(extractedText);
+                                        } catch (fallbackError) {
+                                          setState(() {
+                                            isLoading = false;
+                                            statusMessage = 'PDF parsing failed: $e\nFallback failed: $fallbackError';
+                                          });
+                                          return;
+                                        }
+                                      }
+
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        final id = ref.read(resumeListProvider.notifier).createResume(
+                                          templateId: 'modern_indigo',
+                                          initialData: parsedData,
+                                        );
+                                        Navigator.of(context).pushReplacement(
+                                          MaterialPageRoute(builder: (_) => WorkspaceScreen(resumeId: id)),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  icon: const Icon(Icons.picture_as_pdf_rounded),
+                                  label: const Text('Upload PDF'),
+                                ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Note: AI extraction may not be 100% accurate. Please review and verify the extracted information in your workspace.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                   ],
                 ),
@@ -557,7 +642,8 @@ class _TemplateSelectionScreenState
     );
   }
 
-  String _buildParsePrompt(String text) => '''
+  String _buildParsePrompt(String text) {
+    return '''
 You are an expert resume parsing system. Extract all information from the provided raw resume text and return a structured JSON.
 
 Return ONLY a valid JSON object. No markdown code blocks. The JSON structure:
@@ -574,10 +660,12 @@ Rules:
 1. Return ONLY valid JSON. No markdown.
 2. Empty fields = empty strings. Empty arrays = [].
 3. For custom sections, create entries for Certifications, Languages, Awards etc. Use lowercase IDs.
+4. DO NOT invent or hallucinate information. If the text is empty, return empty fields.
 
 Resume text:
 $text
 ''';
+  }
 }
 
 // -------------------------------------------------------
@@ -638,9 +726,7 @@ class _TemplateCard extends StatelessWidget {
                 ),
                 child: IgnorePointer(
                   child: PdfPreview(
-                    build: (format) => PdfGenerator.generate(
-                      ResumeData.demo().copyWith(templateId: info.id),
-                    ),
+                    build: (format) => compute(PdfGenerator.generate, ResumeData.demo().copyWith(templateId: info.id)),
                     useActions: false,
                     allowPrinting: false,
                     allowSharing: false,
