@@ -225,7 +225,10 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              controller.dispose();
+              Navigator.pop(ctx);
+            },
             child: const Text('Cancel'),
           ),
           FilledButton(
@@ -234,6 +237,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
               if (newName.isNotEmpty && widget.resumeId != null) {
                 ref.read(resumeListProvider.notifier).renameResume(widget.resumeId!, newName);
               }
+              controller.dispose();
               Navigator.pop(ctx);
             },
             child: const Text('Save'),
@@ -820,25 +824,49 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                     ],
                   ),
                 ),
+          extendBody: true,
           bottomNavigationBar: isDesktop
               ? null
-              : NavigationBar(
-                  selectedIndex: _mobileSelectedIndex,
-                  onDestinationSelected: (index) {
-                    setState(() {
-                      _mobileSelectedIndex = index;
-                    });
-                  },
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.edit_note_rounded),
-                      label: 'Form Editor',
+              : SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.shadow.withValues(alpha: 0.15),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(32),
+                        child: NavigationBar(
+                          height: 64,
+                          elevation: 0,
+                          backgroundColor: theme.colorScheme.surfaceContainer.withValues(alpha: 0.9),
+                          selectedIndex: _mobileSelectedIndex,
+                          onDestinationSelected: (index) {
+                            setState(() {
+                              _mobileSelectedIndex = index;
+                            });
+                          },
+                          destinations: const [
+                            NavigationDestination(
+                              icon: Icon(Icons.edit_note_rounded),
+                              label: 'Editor',
+                            ),
+                            NavigationDestination(
+                              icon: Icon(Icons.picture_as_pdf_rounded),
+                              label: 'Preview',
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    NavigationDestination(
-                      icon: Icon(Icons.picture_as_pdf_rounded),
-                      label: 'PDF Preview',
-                    ),
-                  ],
+                  ),
                 ),
         );
       },

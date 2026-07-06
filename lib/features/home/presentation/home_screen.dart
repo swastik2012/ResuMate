@@ -365,32 +365,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           // Resume List or Empty State
           if (resumes.isEmpty)
-            SliverPadding(
-              padding: const EdgeInsets.all(32),
-              sliver: SliverToBoxAdapter(
-                child: Center(
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.description_outlined,
-                        size: 64,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No resumes yet',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.description_outlined,
+                          size: 64,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 24),
                       Text(
-                        'Tap "Start from Scratch" to create your first resume',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        'No Resumes Yet',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Start from scratch or import with AI to build your perfect resume.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 48),
                     ],
                   ),
                 ),
@@ -453,7 +465,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              controller.dispose();
+              Navigator.pop(ctx);
+            },
             child: const Text('Cancel'),
           ),
           FilledButton(
@@ -462,6 +477,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               if (newName.isNotEmpty) {
                 ref.read(resumeListProvider.notifier).renameResume(resume.id, newName);
               }
+              controller.dispose();
               Navigator.pop(ctx);
             },
             child: const Text('Save'),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,6 +6,7 @@ import 'package:resumate/features/resume/domain/resume_model.dart';
 
 class ResumeListNotifier extends Notifier<List<SavedResume>> {
   static const _prefsKey = 'saved_resume_list';
+  Timer? _saveTimer;
 
   @override
   List<SavedResume> build() {
@@ -23,14 +25,17 @@ class ResumeListNotifier extends Notifier<List<SavedResume>> {
     } catch (_) {}
   }
 
-  Future<void> _saveToPrefs() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _prefsKey,
-        json.encode(state.map((e) => e.toJson()).toList()),
-      );
-    } catch (_) {}
+  void _saveToPrefs() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          _prefsKey,
+          json.encode(state.map((e) => e.toJson()).toList()),
+        );
+      } catch (_) {}
+    });
   }
 
   /// Migrate legacy single-resume data into the list on first launch
@@ -56,7 +61,12 @@ class ResumeListNotifier extends Notifier<List<SavedResume>> {
           data: data,
         );
         state = [saved];
-        await _saveToPrefs();
+        // Direct save (not debounced) since this is a one-time migration
+        final prefs2 = await SharedPreferences.getInstance();
+        await prefs2.setString(
+          _prefsKey,
+          json.encode(state.map((e) => e.toJson()).toList()),
+        );
       }
     } catch (_) {}
   }
@@ -118,7 +128,8 @@ class ResumeListNotifier extends Notifier<List<SavedResume>> {
   }
 
   void duplicateResume(String id) {
-    final original = state.firstWhere((r) => r.id == id);
+    final original = getResume(id);
+    if (original == null) return;
     final newId = 'resume_${DateTime.now().millisecondsSinceEpoch}';
     final copy = SavedResume(
       id: newId,

@@ -243,4 +243,8 @@ class HybridAuthRepository implements AuthRepository {
     _currentUser = null;
     _controller.add(null);
   }
+
+  void dispose() {
+    _controller.close();
+  }
 }

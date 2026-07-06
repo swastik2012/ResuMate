@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:resumate/features/resume/domain/resume_model.dart';
 
 class ResumeNotifier extends Notifier<ResumeData> {
   static const _prefsKey = 'saved_resume_data';
+  Timer? _saveTimer;
 
   @override
   ResumeData build() {
@@ -28,13 +30,16 @@ class ResumeNotifier extends Notifier<ResumeData> {
     }
   }
 
-  Future<void> _saveToPrefs(ResumeData current) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_prefsKey, json.encode(current.toJson()));
-    } catch (e) {
-      debugPrint('Failed to persist resume data: $e');
-    }
+  void _saveToPrefs(ResumeData current) {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_prefsKey, json.encode(current.toJson()));
+      } catch (e) {
+        debugPrint('Failed to persist resume data: $e');
+      }
+    });
   }
 
   void updatePersonalInfo(PersonalInfo info) {
@@ -217,8 +222,8 @@ final resumeProvider = NotifierProvider<ResumeNotifier, ResumeData>(() {
 final pdfBytesProvider = FutureProvider<Uint8List>((ref) async {
   final resumeData = ref.watch(resumeProvider);
   
-  // Wait for 400ms. If resumeData changes, Riverpod will automatically discard the previous future and re-run.
-  await Future.delayed(const Duration(milliseconds: 400));
+  // Wait for 800ms. If resumeData changes, Riverpod will automatically discard the previous future and re-run.
+  await Future.delayed(const Duration(milliseconds: 800));
   
   // Run heavy PDF layout in background isolate to keep UI smooth
   return compute(PdfGenerator.generate, resumeData);

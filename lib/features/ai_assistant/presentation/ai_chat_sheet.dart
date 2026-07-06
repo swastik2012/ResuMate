@@ -6,9 +6,14 @@ import 'package:resumate/features/resume/presentation/resume_provider.dart';
 import 'package:resumate/features/ai_assistant/data/ats_analyzer.dart';
 
 // Auto-triggering FutureProvider that computes the ATS compliance result
+// Debounced to avoid re-triggering on every keystroke when the AI panel is open
 final atsResultProvider = FutureProvider<AtsResult>((ref) async {
   final resume = ref.watch(resumeProvider);
   final analyzer = ref.watch(atsAnalyzerProvider);
+  
+  // Wait 1.5s after last change before running analysis
+  await Future.delayed(const Duration(milliseconds: 1500));
+  
   return analyzer.analyze(resume);
 });
 

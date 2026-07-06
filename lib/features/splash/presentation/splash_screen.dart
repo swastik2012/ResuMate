@@ -58,10 +58,10 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 800),
     );
     _logoScale = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic),
     );
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeIn),
+      CurvedAnimation(parent: _logoController, curve: Curves.easeInOutCubic),
     );
 
     // Pulse glow on the logo (looping)
