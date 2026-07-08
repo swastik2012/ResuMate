@@ -58,7 +58,8 @@ class PdfGenerator {
       italicFont = pw.Font.helveticaOblique();
     }
 
-    final marginValue = isMinimal ? 30.0 : (isAtsClean ? 50.0 : 40.0);
+    final double scale = resumeData.forceOnePage ? 0.8 : 1.0;
+    final marginValue = (isMinimal ? 30.0 : (isAtsClean ? 50.0 : 40.0)) * scale;
 
     pdf.addPage(
       pw.MultiPage(
@@ -289,25 +290,102 @@ class PdfGenerator {
               case 'skills':
                 if (resumeData.skills.isNotEmpty) {
                   sectionTitle = 'Skills';
-                  sectionContent.add(
-                    pw.Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: resumeData.skills.map((skill) {
-                        return pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                          decoration: pw.BoxDecoration(
-                            color: PdfColor.fromHex('#f1f3f8'),
-                            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
-                          ),
-                          child: pw.Text(
-                            skill.proficiency.isNotEmpty ? '${skill.name} (${skill.proficiency})' : skill.name,
-                            style: pw.TextStyle(font: baseFont, fontSize: 8.5, color: textColor),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  );
+                  
+                  if (templateId == 'skill_focused') {
+                    // Skill-focused layout with progress bars
+                    sectionContent.add(
+                      pw.Column(
+                        children: resumeData.skills.map((skill) {
+                          final lp = skill.proficiency.toLowerCase();
+                          double val = 0.5;
+                          if (lp.contains('expert') || lp.contains('native')) { val = 1.0; }
+                          else if (lp.contains('advanced') || lp.contains('fluent')) { val = 0.8; }
+                          else if (lp.contains('intermediate') || lp.contains('proficient')) { val = 0.6; }
+                          else if (lp.contains('beginner') || lp.contains('basic')) { val = 0.3; }
+                          else if (lp.isNotEmpty) { val = 0.5; }
+                          else { val = 0.0; }
+                          
+                          return pw.Padding(
+                            padding: const pw.EdgeInsets.only(bottom: 6),
+                            child: pw.Row(
+                              children: [
+                                pw.Expanded(
+                                  flex: 2,
+                                  child: pw.Text(
+                                    skill.name,
+                                    style: pw.TextStyle(font: boldFont, fontSize: 9.5 * scale, color: textColor),
+                                  ),
+                                ),
+                                if (val > 0.0)
+                                  pw.Expanded(
+                                    flex: 3,
+                                    child: pw.Row(
+                                      children: [
+                                        pw.Expanded(
+                                          child: pw.Container(
+                                            height: 5,
+                                            decoration: pw.BoxDecoration(
+                                              color: PdfColor.fromHex('#e0e0e0'),
+                                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2.5)),
+                                            ),
+                                            child: pw.Row(
+                                              children: [
+                                                pw.Expanded(
+                                                  flex: (val * 100).toInt(),
+                                                  child: pw.Container(
+                                                    decoration: pw.BoxDecoration(
+                                                      color: primaryColor,
+                                                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2.5)),
+                                                    ),
+                                                  ),
+                                                ),
+                                                pw.Expanded(
+                                                  flex: ((1.0 - val) * 100).toInt(),
+                                                  child: pw.SizedBox(),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        pw.SizedBox(width: 8),
+                                        pw.SizedBox(
+                                          width: 45,
+                                          child: pw.Text(
+                                            skill.proficiency,
+                                            style: pw.TextStyle(font: italicFont, fontSize: 8 * scale, color: accentColor),
+                                          ),
+                                        ),
+                                      ]
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  } else {
+                    // Default pills
+                    sectionContent.add(
+                      pw.Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: resumeData.skills.map((skill) {
+                          return pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: pw.BoxDecoration(
+                              color: PdfColor.fromHex('#f1f3f8'),
+                              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                            ),
+                            child: pw.Text(
+                              skill.proficiency.isNotEmpty ? '${skill.name} (${skill.proficiency})' : skill.name,
+                              style: pw.TextStyle(font: baseFont, fontSize: 8.5 * scale, color: textColor),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  }
                 }
                 break;
               case 'projects':
@@ -322,23 +400,25 @@ class PdfGenerator {
                           pw.Row(
                             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text(
-                                proj.name.isNotEmpty ? proj.name : 'Project Name',
-                                style: pw.TextStyle(font: boldFont, fontSize: 10, color: textColor),
-                              ),
-                              if (proj.link.isNotEmpty)
-                                pw.UrlLink(
-                                  destination: proj.link.startsWith('http') ? proj.link : 'https://${proj.link}',
-                                  child: pw.Text(
-                                    proj.link,
-                                    style: pw.TextStyle(
-                                      font: italicFont, 
-                                      fontSize: 8.5, 
-                                      color: primaryColor,
-                                      decoration: pw.TextDecoration.underline,
+                              pw.Expanded(
+                                child: proj.link.isNotEmpty
+                                  ? pw.UrlLink(
+                                      destination: proj.link.startsWith('http') ? proj.link : 'https://${proj.link}',
+                                      child: pw.Text(
+                                        proj.name.isNotEmpty ? proj.name : 'Project Name',
+                                        style: pw.TextStyle(
+                                          font: boldFont, 
+                                          fontSize: 10 * scale, 
+                                          color: primaryColor,
+                                          decoration: pw.TextDecoration.underline,
+                                        ),
+                                      ),
+                                    )
+                                  : pw.Text(
+                                      proj.name.isNotEmpty ? proj.name : 'Project Name',
+                                      style: pw.TextStyle(font: boldFont, fontSize: 10 * scale, color: textColor),
                                     ),
-                                  ),
-                                ),
+                              ),
                             ],
                           ),
                           pw.SizedBox(height: 2),
@@ -383,7 +463,7 @@ class PdfGenerator {
                 }
                 break;
               default:
-                if (section.startsWith('custom_')) {
+                if (resumeData.customSections.any((s) => s.id == section)) {
                   final customSecIndex = resumeData.customSections.indexWhere((s) => s.id == section);
                   if (customSecIndex != -1) {
                     final customSec = resumeData.customSections[customSecIndex];

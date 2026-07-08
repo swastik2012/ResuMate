@@ -222,8 +222,15 @@ final resumeProvider = NotifierProvider<ResumeNotifier, ResumeData>(() {
 final pdfBytesProvider = FutureProvider<Uint8List>((ref) async {
   final resumeData = ref.watch(resumeProvider);
   
+  bool isCancelled = false;
+  ref.onDispose(() => isCancelled = true);
+
   // Wait for 800ms. If resumeData changes, Riverpod will automatically discard the previous future and re-run.
   await Future.delayed(const Duration(milliseconds: 800));
+  
+  if (isCancelled) {
+    throw Exception('Debounced/Cancelled by newer keystroke');
+  }
   
   // Run heavy PDF layout in background isolate to keep UI smooth
   return compute(PdfGenerator.generate, resumeData);

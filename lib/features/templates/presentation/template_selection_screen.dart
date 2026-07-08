@@ -98,6 +98,14 @@ class _TemplateSelectionScreenState
       color: Color(0xFF0D47A1),
       tags: ['Executive', 'Formal'],
     ),
+    _TemplateInfo(
+      id: 'skill_focused',
+      name: 'Skill Focused',
+      description: 'Highlight your proficiencies with visual progress bars',
+      icon: Icons.bar_chart_rounded,
+      color: Color(0xFF388E3C),
+      tags: ['Modern', 'Skills'],
+    ),
   ];
 
   @override

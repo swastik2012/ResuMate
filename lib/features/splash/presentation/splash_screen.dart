@@ -201,31 +201,28 @@ class _SplashScreenState extends State<SplashScreen>
                 const Spacer(flex: 3),
 
                 // --- Animated Logo ---
-                AnimatedBuilder(
-                  animation: Listenable.merge([_logoController, _pulseController]),
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _logoOpacity.value,
-                      child: Transform.scale(
-                        scale: _logoScale.value * _pulseScale.value,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: _buildLogoWidget(),
+                FadeTransition(
+                  opacity: _logoOpacity,
+                  child: ScaleTransition(
+                    scale: _logoScale,
+                    child: ScaleTransition(
+                      scale: _pulseScale,
+                      child: _buildLogoWidget(),
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 32),
 
                 // --- Animated Title "ResuMate" ---
-                AnimatedBuilder(
-                  animation: Listenable.merge([_textController, _shimmerController]),
-                  builder: (context, _) {
-                    return SlideTransition(
-                      position: _titleSlide,
-                      child: Opacity(
-                        opacity: _titleOpacity.value,
-                        child: ShaderMask(
+                SlideTransition(
+                  position: _titleSlide,
+                  child: FadeTransition(
+                    opacity: _titleOpacity,
+                    child: AnimatedBuilder(
+                      animation: _shimmerController,
+                      builder: (context, _) {
+                        return ShaderMask(
                           shaderCallback: (bounds) {
                             final shimmerOffset =
                                 _shimmerController.value * 3.0 - 1.0;
@@ -250,33 +247,27 @@ class _SplashScreenState extends State<SplashScreen>
                               color: Colors.white,
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
+                        );
+                      },
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 12),
 
                 // --- Animated Tagline ---
-                AnimatedBuilder(
-                  animation: _textController,
-                  builder: (context, child) {
-                    return SlideTransition(
-                      position: _taglineSlide,
-                      child: Opacity(
-                        opacity: _taglineOpacity.value,
-                        child: child,
+                SlideTransition(
+                  position: _taglineSlide,
+                  child: FadeTransition(
+                    opacity: _taglineOpacity,
+                    child: Text(
+                      'AI-Powered Resume Builder',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.8,
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
-                    );
-                  },
-                  child: Text(
-                    'AI-Powered Resume Builder',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 0.8,
-                      color: Colors.white.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -284,28 +275,16 @@ class _SplashScreenState extends State<SplashScreen>
                 const Spacer(flex: 2),
 
                 // --- Animated Progress Indicator ---
-                AnimatedBuilder(
-                  animation: _progressController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _progressOpacity.value,
-                      child: child,
-                    );
-                  },
+                FadeTransition(
+                  opacity: _progressOpacity,
                   child: const _GradientProgressBar(),
                 ),
 
                 const SizedBox(height: 16),
 
                 // --- Loading Text ---
-                AnimatedBuilder(
-                  animation: _progressController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _progressOpacity.value,
-                      child: child,
-                    );
-                  },
+                FadeTransition(
+                  opacity: _progressOpacity,
                   child: Text(
                     'Getting things ready...',
                     style: TextStyle(

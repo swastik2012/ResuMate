@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart' as sync_pdf;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -352,12 +354,12 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
     );
   }
 
-  List<Widget> _buildEditorSections(BuildContext context, ResumeData resume) {
+  List<Widget> _buildEditorSections(BuildContext context, List<String> sectionOrder, List<CustomSection> customSections, bool forceOnePage) {
     final List<Widget> formCards = [];
     
     formCards.add(const TemplateSelectorCard());
     formCards.add(const SizedBox(height: 16));
-    formCards.add(AtsCompletenessTracker(resume: resume));
+    formCards.add(const AtsCompletenessTracker());
     formCards.add(const SizedBox(height: 16));
 
     formCards.add(Card(
@@ -383,12 +385,27 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
               );
             },
           ),
+          const Divider(height: 1),
+          SwitchListTile(
+            secondary: const Icon(Icons.compress_rounded),
+            title: const Text('Compact One-Page Mode'),
+            subtitle: const Text('Reduces text size and spacing to fit on a single page'),
+            value: forceOnePage,
+            activeTrackColor: Theme.of(context).colorScheme.primaryContainer,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
+            onChanged: (val) {
+              final currentResume = ref.read(resumeProvider);
+              ref.read(resumeProvider.notifier).loadResumeData(
+                currentResume.copyWith(forceOnePage: val),
+              );
+            },
+          ),
         ],
       ),
     ));
     formCards.add(const SizedBox(height: 16));
 
-    for (final section in resume.sectionOrder) {
+    for (final section in sectionOrder) {
       if (section == 'personal_info') {
         formCards.add(const PersonalInfoSection());
         formCards.add(const SizedBox(height: 16));
@@ -407,15 +424,47 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
       } else if (section == 'custom_sections') {
         formCards.add(const CustomSectionsSection());
         formCards.add(const SizedBox(height: 16));
-      } else if (section.startsWith('custom_')) {
-        final customSecIndex = resume.customSections.indexWhere((s) => s.id == section);
+      } else if (customSections.any((s) => s.id == section)) {
+        final customSecIndex = customSections.indexWhere((s) => s.id == section);
         if (customSecIndex != -1) {
-          final customSec = resume.customSections[customSecIndex];
+          final customSec = customSections[customSecIndex];
           formCards.add(CustomSectionItem(index: customSecIndex, section: customSec));
           formCards.add(const SizedBox(height: 16));
         }
       }
     }
+
+    formCards.add(Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: const Icon(Icons.add_rounded),
+        title: const Text('Add Custom Section'),
+        subtitle: const Text('Create a new custom section (e.g. Certifications, Languages)'),
+        onTap: () {
+          ref.read(resumeProvider.notifier).addCustomSection();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('New custom section added at the end!')),
+          );
+        },
+      ),
+    ));
+    formCards.add(const SizedBox(height: 16));
+
+    formCards.add(Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: const Icon(Icons.add_rounded),
+        title: const Text('Add Custom Section'),
+        subtitle: const Text('Create a new custom section (e.g. Certifications, Languages)'),
+        onTap: () {
+          ref.read(resumeProvider.notifier).addCustomSection();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('New custom section added at the end!')),
+          );
+        },
+      ),
+    ));
+    formCards.add(const SizedBox(height: 16));
 
     formCards.add(const TargetJobSection());
     formCards.add(const SizedBox(height: 16));
@@ -513,18 +562,23 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeMode = ref.watch(themeProvider);
-    final pdfState = ref.watch(pdfBytesProvider);
     final authUser = ref.watch(authProvider).value;
-    final resume = ref.watch(resumeProvider);
+    
+    // Watch specific fields to prevent full screen rebuilds on every keystroke
+    final templateId = ref.watch(resumeProvider.select((r) => r.templateId));
+    final sectionOrder = ref.watch(resumeProvider.select((r) => r.sectionOrder));
+    final customSections = ref.watch(resumeProvider.select((r) => r.customSections));
+    final forceOnePage = ref.watch(resumeProvider.select((r) => r.forceOnePage));
+
     final savedResumes = ref.watch(resumeListProvider);
     final currentSavedResume = savedResumes.firstWhere(
       (r) => r.id == widget.resumeId,
       orElse: () => SavedResume(
         id: 'temp',
         name: 'My Resume',
-        templateId: resume.templateId,
+        templateId: templateId,
         lastModified: DateTime.now(),
-        data: resume,
+        data: ref.read(resumeProvider),
       ),
     );
 
@@ -703,7 +757,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                               ? _buildSkeletonLoader(context)
                               : Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: _buildEditorSections(context, resume),
+                                  children: _buildEditorSections(context, sectionOrder, customSections, forceOnePage),
                                 ),
                         ),
                       ),
@@ -722,39 +776,48 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                         child: Column(
                           children: [
                             // Template Switcher Header Strip
-                            _buildTemplateSwitcherHeader(context, theme, resume),
+                            _buildTemplateSwitcherHeader(context, theme, templateId),
                             Expanded(
-                              child: pdfState.maybeWhen(
-                                data: (bytes) => PdfPreview(
-                                  build: (format) => bytes,
-                                  useActions: true,
-                                  allowPrinting: true,
-                                  allowSharing: true,
-                                  canChangePageFormat: false,
-                                  canChangeOrientation: false,
-                                  canDebug: false,
-                                ),
-                                orElse: () {
-                                  if (pdfState.hasValue && pdfState.value != null) {
-                                    return PdfPreview(
-                                      build: (format) => pdfState.value!,
-                                      useActions: true,
-                                      allowPrinting: true,
-                                      allowSharing: true,
-                                      canChangePageFormat: false,
-                                      canChangeOrientation: false,
-                                      canDebug: false,
-                                    );
-                                  }
-                                  return const Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        CircularProgressIndicator(),
-                                        SizedBox(height: 16),
-                                        Text('Compiling PDF...'),
-                                      ],
+                              child: Consumer(
+                                builder: (context, ref, _) {
+                                  final pdfState = ref.watch(pdfBytesProvider);
+                                  return pdfState.maybeWhen(
+                                    data: (bytes) => RepaintBoundary(
+                                      child: PdfPreview(
+                                        build: (format) => bytes,
+                                        useActions: true,
+                                        allowPrinting: true,
+                                        allowSharing: true,
+                                        canChangePageFormat: false,
+                                        canChangeOrientation: false,
+                                        canDebug: false,
+                                      ),
                                     ),
+                                    orElse: () {
+                                      if (pdfState.hasValue && pdfState.value != null) {
+                                        return RepaintBoundary(
+                                          child: PdfPreview(
+                                            build: (format) => pdfState.value!,
+                                            useActions: true,
+                                            allowPrinting: true,
+                                            allowSharing: true,
+                                            canChangePageFormat: false,
+                                            canChangeOrientation: false,
+                                            canDebug: false,
+                                          ),
+                                        );
+                                      }
+                                      return const Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            CircularProgressIndicator(),
+                                            SizedBox(height: 16),
+                                            Text('Compiling PDF...'),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               ),
@@ -779,7 +842,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                               ? _buildSkeletonLoader(context)
                               : Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: _buildEditorSections(context, resume),
+                                  children: _buildEditorSections(context, sectionOrder, customSections, forceOnePage),
                                 ),
                         ),
                       ),
@@ -788,32 +851,41 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                         color: theme.colorScheme.surface,
                         child: Column(
                           children: [
-                            _buildTemplateSwitcherHeader(context, theme, resume),
+                            _buildTemplateSwitcherHeader(context, theme, templateId),
                             Expanded(
-                              child: pdfState.maybeWhen(
-                                data: (bytes) => PdfPreview(
-                                  build: (format) => bytes,
-                                  useActions: true,
-                                  allowPrinting: true,
-                                  allowSharing: true,
-                                  canChangePageFormat: false,
-                                  canChangeOrientation: false,
-                                  canDebug: false,
-                                ),
-                                orElse: () {
-                                  if (pdfState.hasValue && pdfState.value != null) {
-                                    return PdfPreview(
-                                      build: (format) => pdfState.value!,
-                                      useActions: true,
-                                      allowPrinting: true,
-                                      allowSharing: true,
-                                      canChangePageFormat: false,
-                                      canChangeOrientation: false,
-                                      canDebug: false,
-                                    );
-                                  }
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
+                              child: Consumer(
+                                builder: (context, ref, _) {
+                                  final pdfState = ref.watch(pdfBytesProvider);
+                                  return pdfState.maybeWhen(
+                                    data: (bytes) => RepaintBoundary(
+                                      child: PdfPreview(
+                                        build: (format) => bytes,
+                                        useActions: true,
+                                        allowPrinting: true,
+                                        allowSharing: true,
+                                        canChangePageFormat: false,
+                                        canChangeOrientation: false,
+                                        canDebug: false,
+                                      ),
+                                    ),
+                                    orElse: () {
+                                      if (pdfState.hasValue && pdfState.value != null) {
+                                        return RepaintBoundary(
+                                          child: PdfPreview(
+                                            build: (format) => pdfState.value!,
+                                            useActions: true,
+                                            allowPrinting: true,
+                                            allowSharing: true,
+                                            canChangePageFormat: false,
+                                            canChangeOrientation: false,
+                                            canDebug: false,
+                                          ),
+                                        );
+                                      }
+                                      return const Center(
+                                        child: CircularProgressIndicator(),
+                                      );
+                                    },
                                   );
                                 },
                               ),
@@ -829,9 +901,11 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
               ? null
               : SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                    padding: const EdgeInsets.fromLTRB(48, 0, 48, 16),
                     child: Container(
+                      height: 64,
                       decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(32),
                         boxShadow: [
                           BoxShadow(
@@ -843,26 +917,103 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(32),
-                        child: NavigationBar(
-                          height: 64,
-                          elevation: 0,
-                          backgroundColor: theme.colorScheme.surfaceContainer.withValues(alpha: 0.9),
-                          selectedIndex: _mobileSelectedIndex,
-                          onDestinationSelected: (index) {
-                            setState(() {
-                              _mobileSelectedIndex = index;
-                            });
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final halfWidth = constraints.maxWidth / 2;
+                            return Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Animated Selection Indicator
+                                AnimatedPositioned(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                  left: _mobileSelectedIndex == 0 ? 0 : halfWidth,
+                                  width: halfWidth,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: Container(
+                                      height: 52,
+                                      margin: const EdgeInsets.symmetric(horizontal: 6),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(26),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Buttons
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _mobileSelectedIndex = 0),
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Center(
+                                          child: AnimatedDefaultTextStyle(
+                                            duration: const Duration(milliseconds: 300),
+                                            style: TextStyle(
+                                              color: _mobileSelectedIndex == 0
+                                                  ? theme.colorScheme.onPrimaryContainer
+                                                  : theme.colorScheme.onSurfaceVariant,
+                                              fontWeight: _mobileSelectedIndex == 0 ? FontWeight.bold : FontWeight.normal,
+                                              fontFamily: theme.textTheme.bodyMedium?.fontFamily,
+                                            ),
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.edit_note_rounded, 
+                                                  color: _mobileSelectedIndex == 0 
+                                                      ? theme.colorScheme.onPrimaryContainer 
+                                                      : theme.colorScheme.onSurfaceVariant,
+                                                  size: 22,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                const Text('Editor', style: TextStyle(fontSize: 12)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _mobileSelectedIndex = 1),
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Center(
+                                          child: AnimatedDefaultTextStyle(
+                                            duration: const Duration(milliseconds: 300),
+                                            style: TextStyle(
+                                              color: _mobileSelectedIndex == 1
+                                                  ? theme.colorScheme.onPrimaryContainer
+                                                  : theme.colorScheme.onSurfaceVariant,
+                                              fontWeight: _mobileSelectedIndex == 1 ? FontWeight.bold : FontWeight.normal,
+                                              fontFamily: theme.textTheme.bodyMedium?.fontFamily,
+                                            ),
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.picture_as_pdf_rounded, 
+                                                  color: _mobileSelectedIndex == 1 
+                                                      ? theme.colorScheme.onPrimaryContainer 
+                                                      : theme.colorScheme.onSurfaceVariant,
+                                                  size: 22,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                const Text('Preview', style: TextStyle(fontSize: 12)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
                           },
-                          destinations: const [
-                            NavigationDestination(
-                              icon: Icon(Icons.edit_note_rounded),
-                              label: 'Editor',
-                            ),
-                            NavigationDestination(
-                              icon: Icon(Icons.picture_as_pdf_rounded),
-                              label: 'Preview',
-                            ),
-                          ],
                         ),
                       ),
                     ),
@@ -873,7 +1024,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
     );
   }
 
-  Widget _buildTemplateSwitcherHeader(BuildContext context, ThemeData theme, ResumeData resume) {
+  Widget _buildTemplateSwitcherHeader(BuildContext context, ThemeData theme, String templateId) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       color: theme.colorScheme.surfaceContainerLow,
@@ -911,7 +1062,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: List.generate(_allTemplateIds.length, (i) {
-                final isSelected = resume.templateId == _allTemplateIds[i];
+                final isSelected = templateId == _allTemplateIds[i];
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
@@ -1867,13 +2018,12 @@ class TemplateSelectorCard extends ConsumerWidget {
 // -------------------------------------------------------------
 // ATS Progress Tracker Component
 // -------------------------------------------------------------
-class AtsCompletenessTracker extends StatelessWidget {
-  final ResumeData resume;
-
-  const AtsCompletenessTracker({super.key, required this.resume});
+class AtsCompletenessTracker extends ConsumerWidget {
+  const AtsCompletenessTracker({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resume = ref.watch(resumeProvider);
     final theme = Theme.of(context);
 
     double score = 0.0;
@@ -2349,6 +2499,72 @@ class ImportExportCard extends ConsumerWidget {
     );
   }
 
+  String _buildParsePrompt(String text) {
+    return '''
+Parse the following resume text and extract the information into a structured JSON format matching this exact schema. If any information is missing, leave the string empty or the array empty.
+
+Schema:
+{
+  "personalInfo": {
+    "fullName": "First and Last Name",
+    "email": "Email Address",
+    "phoneNumber": "Phone Number",
+    "location": "City, State or full address",
+    "website": "Personal website or portfolio",
+    "github": "GitHub profile URL",
+    "summary": "A professional summary or objective statement (extract this carefully, it's often at the top)"
+  },
+  "targetJob": "Target Job Title (if mentioned)",
+  "workExperience": [
+    {
+      "company": "Company Name",
+      "position": "Job Title",
+      "startDate": "Start Date",
+      "endDate": "End Date or Present",
+      "description": "Responsibilities and achievements (can use bullet points starting with •)"
+    }
+  ],
+  "education": [
+    {
+      "institution": "School/University Name",
+      "degree": "Degree and Major",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "gpa": "GPA (if specified)"
+    }
+  ],
+  "skills": [
+    {
+      "name": "Skill Name",
+      "proficiency": "e.g. Expert, Intermediate, Beginner"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "Short description of the project",
+      "link": "Project URL or GitHub link"
+    }
+  ],
+  "customSections": [
+    {
+      "id": "unique_section_id",
+      "title": "Section Title (e.g. Certifications, Languages)",
+      "content": "Content of the section, can use newlines and bullet points starting with •"
+    }
+  ]
+}
+
+Ensure:
+1. ONLY return a valid JSON object. Do not include markdown code block syntax (like ```json) or any conversational introduction/conclusion.
+2. If fields are not found in the raw text, leave them as empty strings "" or empty lists [].
+3. For customSections, dynamically create sections for any extra information found in the resume that doesn't fit standard categories (e.g., Certifications, Languages, Publications, Awards). Generate a clean lowercase ID with underscores for each custom section (e.g., "certifications", "languages").
+
+Raw Resume Text to Parse:
+$text
+''';
+  }
+
   void _showAiExtractorDialog(BuildContext context, WidgetRef ref) {
     final client = ref.read(geminiClientProvider);
     final textController = TextEditingController();
@@ -2441,6 +2657,60 @@ class ImportExportCard extends ConsumerWidget {
                           alignLabelWithHint: true,
                           hintText: 'John Doe\njohn.doe@email.com\n\nExperience:\nSenior Developer at Google...',
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Center(
+                        child: Text('OR', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.tonalIcon(
+                        onPressed: () async {
+                          final result = await FilePicker.platform.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['pdf'],
+                            withData: true,
+                          );
+                          if (result != null && result.files.single.bytes != null) {
+                            final bytes = result.files.single.bytes!;
+
+                            setState(() {
+                              isLoading = true;
+                              errorMessage = 'Extracting from PDF...';
+                            });
+
+                            ResumeData parsedData = ref.read(resumeProvider);
+                            try {
+                              final document = sync_pdf.PdfDocument(inputBytes: bytes);
+                              final extractedText = sync_pdf.PdfTextExtractor(document).extractText();
+                              document.dispose();
+
+                              final prompt = _buildParsePrompt(extractedText);
+                              final response = await client.generateText(prompt: prompt);
+                              var clean = response.trim();
+                              if (clean.startsWith('```json')) clean = clean.substring(7);
+                              if (clean.startsWith('```')) clean = clean.substring(3);
+                              if (clean.endsWith('```')) clean = clean.substring(0, clean.length - 3);
+                              clean = clean.trim();
+                              parsedData = ResumeData.fromJson(jsonDecode(clean));
+                            } catch (e) {
+                                setState(() {
+                                  isLoading = false;
+                                  errorMessage = 'PDF parsing failed: $e';
+                                });
+                                return;
+                            }
+
+                            if (context.mounted) {
+                              ref.read(resumeProvider.notifier).loadResumeData(parsedData);
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Resume data parsed from PDF successfully!')),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.picture_as_pdf_rounded),
+                        label: const Text('Upload PDF'),
                       ),
                   ],
                 ),

@@ -266,6 +266,7 @@ class ResumeData {
   final List<String> sectionOrder;
   final String templateId;
   final String targetJobDescription;
+  final bool forceOnePage;
 
   ResumeData({
     PersonalInfo? personalInfo,
@@ -277,6 +278,7 @@ class ResumeData {
     List<String>? sectionOrder,
     this.templateId = 'modern_indigo',
     this.targetJobDescription = '',
+    this.forceOnePage = false,
   })  : personalInfo = personalInfo ?? PersonalInfo(),
         workExperience = workExperience ?? [],
         education = education ?? [],
@@ -304,6 +306,7 @@ class ResumeData {
     List<String>? sectionOrder,
     String? templateId,
     String? targetJobDescription,
+    bool? forceOnePage,
   }) {
     return ResumeData(
       personalInfo: personalInfo ?? this.personalInfo,
@@ -315,6 +318,7 @@ class ResumeData {
       sectionOrder: sectionOrder ?? this.sectionOrder,
       templateId: templateId ?? this.templateId,
       targetJobDescription: targetJobDescription ?? this.targetJobDescription,
+      forceOnePage: forceOnePage ?? this.forceOnePage,
     );
   }
 
@@ -329,6 +333,7 @@ class ResumeData {
       'sectionOrder': sectionOrder,
       'templateId': templateId,
       'targetJobDescription': targetJobDescription,
+      'forceOnePage': forceOnePage,
     };
   }
 
@@ -372,6 +377,7 @@ class ResumeData {
       sectionOrder: order,
       templateId: json['templateId'] ?? 'modern_indigo',
       targetJobDescription: json['targetJobDescription'] ?? '',
+      forceOnePage: json['forceOnePage'] ?? false,
     );
   }
 

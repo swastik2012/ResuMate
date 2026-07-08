@@ -88,7 +88,19 @@ class _AiChatSheetState extends ConsumerState<AiChatSheet> {
     });
 
     try {
-      final optimizedText = await client.generateText(prompt: promptTemplate);
+      var optimizedText = await client.generateText(prompt: promptTemplate);
+      
+      // Clean up potential markdown formatting and preambles
+      optimizedText = optimizedText.trim();
+      if (optimizedText.startsWith('```')) {
+        final firstNewline = optimizedText.indexOf('\n');
+        if (firstNewline != -1) {
+          optimizedText = optimizedText.substring(firstNewline + 1).trim();
+        }
+        if (optimizedText.endsWith('```')) {
+          optimizedText = optimizedText.substring(0, optimizedText.length - 3).trim();
+        }
+      }
       
       if (!mounted) return;
       setState(() {
@@ -471,6 +483,12 @@ class _AiChatSheetState extends ConsumerState<AiChatSheet> {
 You are a career development expert. Rewrite the following work experience bullet points to be highly professional and impactful.
 Format them as standard bullet points.
 Start every action description with a strong executive action verb.
+
+IMPORTANT RULES: 
+1. DO NOT include any conversational preamble (e.g. "Here are the optimized bullets:").
+2. DO NOT wrap the output in markdown code blocks.
+3. RETURN ONLY the raw bullet points.
+
 Original description:
 $originalDesc
 ''';
@@ -501,6 +519,11 @@ $originalDesc
 You are an expert recruiter. Tailor the following candidate profile summary to align with the target job description while maintaining factual accuracy.
 Keep it between 3-4 professional, impactful sentences. Do not mention any credentials not indicated in the original text.
 
+IMPORTANT RULES: 
+1. DO NOT include any conversational preamble (e.g. "Here is the tailored summary:").
+2. DO NOT wrap the output in markdown code blocks.
+3. RETURN ONLY the raw tailored summary text.
+
 Original Summary:
 $originalSummary
 
@@ -524,6 +547,11 @@ $jd
                         final prompt = '''
 Identify and convert any passive voice formulations into active professional voice in the following profile summary. 
 Maintain all original facts and details.
+
+IMPORTANT RULES: 
+1. DO NOT include any conversational preamble (e.g. "Here is the active voice summary:").
+2. DO NOT wrap the output in markdown code blocks.
+3. RETURN ONLY the raw corrected summary text.
 
 Summary Text:
 $originalSummary
