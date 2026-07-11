@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
@@ -450,21 +451,7 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
     ));
     formCards.add(const SizedBox(height: 16));
 
-    formCards.add(Card(
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        leading: const Icon(Icons.add_rounded),
-        title: const Text('Add Custom Section'),
-        subtitle: const Text('Create a new custom section (e.g. Certifications, Languages)'),
-        onTap: () {
-          ref.read(resumeProvider.notifier).addCustomSection();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('New custom section added at the end!')),
-          );
-        },
-      ),
-    ));
-    formCards.add(const SizedBox(height: 16));
+    // Duplicate 'Add Custom Section' card removed
 
     formCards.add(const TargetJobSection());
     formCards.add(const SizedBox(height: 16));
@@ -570,7 +557,10 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
     final customSections = ref.watch(resumeProvider.select((r) => r.customSections));
     final forceOnePage = ref.watch(resumeProvider.select((r) => r.forceOnePage));
 
-    final savedResumes = ref.watch(resumeListProvider);
+    // Use ref.read() instead of ref.watch() to avoid the feedback loop:
+    // keystroke → resumeProvider mutates → listenManual calls updateResume → 
+    // resumeListProvider emits new state → ref.watch triggers full rebuild
+    final savedResumes = ref.read(resumeListProvider);
     final currentSavedResume = savedResumes.firstWhere(
       (r) => r.id == widget.resumeId,
       orElse: () => SavedResume(
@@ -1421,7 +1411,8 @@ class WorkExperienceSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final list = ref.watch(resumeProvider).workExperience;
+    // Only rebuild when items are added/removed, not when text in items changes
+    final list = ref.watch(resumeProvider.select((r) => r.workExperience));
 
     return SectionCard(
       title: 'Work Experience',
@@ -1431,7 +1422,7 @@ class WorkExperienceSection extends ConsumerWidget {
           ...list.asMap().entries.map((entry) {
             final idx = entry.key;
             final exp = entry.value;
-            return WorkExperienceItem(index: idx, experience: exp);
+            return WorkExperienceItem(key: ValueKey('work_$idx'), index: idx, experience: exp);
           }),
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
@@ -1476,6 +1467,18 @@ class _WorkExperienceItemState extends ConsumerState<WorkExperienceItem> {
     _startController = TextEditingController(text: widget.experience.startDate);
     _endController = TextEditingController(text: widget.experience.endDate);
     _descController = TextEditingController(text: widget.experience.description);
+  }
+
+  @override
+  void didUpdateWidget(covariant WorkExperienceItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.experience != widget.experience) {
+      if (_companyController.text != widget.experience.company) _companyController.text = widget.experience.company;
+      if (_positionController.text != widget.experience.position) _positionController.text = widget.experience.position;
+      if (_startController.text != widget.experience.startDate) _startController.text = widget.experience.startDate;
+      if (_endController.text != widget.experience.endDate) _endController.text = widget.experience.endDate;
+      if (_descController.text != widget.experience.description) _descController.text = widget.experience.description;
+    }
   }
 
   void _syncState() {
@@ -1605,7 +1608,7 @@ class EducationSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final list = ref.watch(resumeProvider).education;
+    final list = ref.watch(resumeProvider.select((r) => r.education));
 
     return SectionCard(
       title: 'Education',
@@ -1615,7 +1618,7 @@ class EducationSection extends ConsumerWidget {
           ...list.asMap().entries.map((entry) {
             final idx = entry.key;
             final edu = entry.value;
-            return EducationItem(index: idx, education: edu);
+            return EducationItem(key: ValueKey('edu_$idx'), index: idx, education: edu);
           }),
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
@@ -1660,6 +1663,18 @@ class _EducationItemState extends ConsumerState<EducationItem> {
     _startController = TextEditingController(text: widget.education.startDate);
     _endController = TextEditingController(text: widget.education.endDate);
     _gpaController = TextEditingController(text: widget.education.gpa);
+  }
+
+  @override
+  void didUpdateWidget(covariant EducationItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.education != widget.education) {
+      if (_instController.text != widget.education.institution) _instController.text = widget.education.institution;
+      if (_degController.text != widget.education.degree) _degController.text = widget.education.degree;
+      if (_startController.text != widget.education.startDate) _startController.text = widget.education.startDate;
+      if (_endController.text != widget.education.endDate) _endController.text = widget.education.endDate;
+      if (_gpaController.text != widget.education.gpa) _gpaController.text = widget.education.gpa;
+    }
   }
 
   void _syncState() {
@@ -1769,7 +1784,7 @@ class SkillsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final list = ref.watch(resumeProvider).skills;
+    final list = ref.watch(resumeProvider.select((r) => r.skills));
 
     return SectionCard(
       title: 'Professional Skills',
@@ -1779,7 +1794,7 @@ class SkillsSection extends ConsumerWidget {
           ...list.asMap().entries.map((entry) {
             final idx = entry.key;
             final skill = entry.value;
-            return SkillItem(index: idx, skill: skill);
+            return SkillItem(key: ValueKey('skill_$idx'), index: idx, skill: skill);
           }),
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
@@ -1818,6 +1833,15 @@ class _SkillItemState extends ConsumerState<SkillItem> {
     super.initState();
     _nameController = TextEditingController(text: widget.skill.name);
     _proficiencyController = TextEditingController(text: widget.skill.proficiency);
+  }
+
+  @override
+  void didUpdateWidget(covariant SkillItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.skill != widget.skill) {
+      if (_nameController.text != widget.skill.name) _nameController.text = widget.skill.name;
+      if (_proficiencyController.text != widget.skill.proficiency) _proficiencyController.text = widget.skill.proficiency;
+    }
   }
 
   void _syncState() {
@@ -1951,7 +1975,7 @@ class TemplateSelectorCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentTemplateId = ref.watch(resumeProvider).templateId;
+    final currentTemplateId = ref.watch(resumeProvider.select((r) => r.templateId));
     final theme = Theme.of(context);
 
     final templates = [
@@ -2018,14 +2042,36 @@ class TemplateSelectorCard extends ConsumerWidget {
 // -------------------------------------------------------------
 // ATS Progress Tracker Component
 // -------------------------------------------------------------
-class AtsCompletenessTracker extends ConsumerWidget {
+class AtsCompletenessTracker extends ConsumerStatefulWidget {
   const AtsCompletenessTracker({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final resume = ref.watch(resumeProvider);
-    final theme = Theme.of(context);
+  ConsumerState<AtsCompletenessTracker> createState() => _AtsCompletenessTrackerState();
+}
 
+class _AtsCompletenessTrackerState extends ConsumerState<AtsCompletenessTracker> {
+  double _progress = 0.0;
+  int _percentage = 0;
+  Color _progressColor = Colors.redAccent;
+  String _rankLabel = 'Draft (Incomplete)';
+  Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Compute initial score once
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _computeScore(ref.read(resumeProvider));
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _computeScore(ResumeData resume) {
     double score = 0.0;
     if (resume.personalInfo.fullName.isNotEmpty) score += 0.10;
     if (resume.personalInfo.email.isNotEmpty) score += 0.05;
@@ -2063,6 +2109,28 @@ class AtsCompletenessTracker extends ConsumerWidget {
       rankLabel = 'ATS Optimized (Ready!)';
     }
 
+    if (mounted) {
+      setState(() {
+        _progress = progress;
+        _percentage = percentage;
+        _progressColor = progressColor;
+        _rankLabel = rankLabel;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // Debounce: only recompute score 600ms after the last state change
+    ref.listen<ResumeData>(resumeProvider, (_, next) {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 600), () {
+        _computeScore(next);
+      });
+    });
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -2088,10 +2156,10 @@ class AtsCompletenessTracker extends ConsumerWidget {
                   ],
                 ),
                 Text(
-                  '$percentage%',
+                  '$_percentage%',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: progressColor,
+                    color: _progressColor,
                   ),
                 ),
               ],
@@ -2100,9 +2168,9 @@ class AtsCompletenessTracker extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: progress,
+                value: _progress,
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                color: progressColor,
+                color: _progressColor,
                 minHeight: 8,
               ),
             ),
@@ -2115,10 +2183,10 @@ class AtsCompletenessTracker extends ConsumerWidget {
                   style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 Text(
-                  rankLabel,
+                  _rankLabel,
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: progressColor,
+                    color: _progressColor,
                   ),
                 ),
               ],
@@ -2138,7 +2206,7 @@ class ProjectsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final list = ref.watch(resumeProvider).projects;
+    final list = ref.watch(resumeProvider.select((r) => r.projects));
 
     return SectionCard(
       title: 'Projects',
@@ -2148,7 +2216,7 @@ class ProjectsSection extends ConsumerWidget {
           ...list.asMap().entries.map((entry) {
             final idx = entry.key;
             final proj = entry.value;
-            return ProjectItem(index: idx, project: proj);
+            return ProjectItem(key: ValueKey('proj_$idx'), index: idx, project: proj);
           }),
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
@@ -2189,6 +2257,16 @@ class _ProjectItemState extends ConsumerState<ProjectItem> {
     _nameController = TextEditingController(text: widget.project.name);
     _descController = TextEditingController(text: widget.project.description);
     _linkController = TextEditingController(text: widget.project.link);
+  }
+
+  @override
+  void didUpdateWidget(covariant ProjectItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.project != widget.project) {
+      if (_nameController.text != widget.project.name) _nameController.text = widget.project.name;
+      if (_descController.text != widget.project.description) _descController.text = widget.project.description;
+      if (_linkController.text != widget.project.link) _linkController.text = widget.project.link;
+    }
   }
 
   void _syncState() {
@@ -2278,7 +2356,7 @@ class CustomSectionsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final list = ref.watch(resumeProvider).customSections;
+    final list = ref.watch(resumeProvider.select((r) => r.customSections));
 
     return SectionCard(
       title: 'Custom Sections',
@@ -2288,7 +2366,7 @@ class CustomSectionsSection extends ConsumerWidget {
           ...list.asMap().entries.map((entry) {
             final idx = entry.key;
             final sec = entry.value;
-            return CustomSectionItem(index: idx, section: sec);
+            return CustomSectionItem(key: ValueKey('custom_${sec.id}'), index: idx, section: sec);
           }),
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
@@ -2327,6 +2405,15 @@ class _CustomSectionItemState extends ConsumerState<CustomSectionItem> {
     super.initState();
     _titleController = TextEditingController(text: widget.section.title);
     _contentController = TextEditingController(text: widget.section.content);
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomSectionItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.section != widget.section) {
+      if (_titleController.text != widget.section.title) _titleController.text = widget.section.title;
+      if (_contentController.text != widget.section.content) _contentController.text = widget.section.content;
+    }
   }
 
   void _syncState() {
