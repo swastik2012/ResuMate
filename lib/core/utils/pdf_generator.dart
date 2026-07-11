@@ -58,13 +58,15 @@ class PdfGenerator {
       italicFont = pw.Font.helveticaOblique();
     }
 
-    final double scale = resumeData.forceOnePage ? 0.8 : 1.0;
+    final double scale = resumeData.forceOnePage ? 0.78 : 1.0;
     final marginValue = (isMinimal ? 30.0 : (isAtsClean ? 50.0 : 40.0)) * scale;
+    final double spacingScale = resumeData.forceOnePage ? 0.6 : 1.0;
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.letter,
-        margin: pw.EdgeInsets.symmetric(horizontal: marginValue, vertical: marginValue),
+        margin: pw.EdgeInsets.symmetric(horizontal: marginValue, vertical: marginValue * 0.85),
+        maxPages: resumeData.forceOnePage ? 1 : 100,
         build: (pw.Context context) {
           final List<pw.Widget> contentWidgets = [];
 
@@ -87,22 +89,22 @@ class PdfGenerator {
                           : 'YOUR NAME',
                       style: pw.TextStyle(
                         font: boldFont,
-                        fontSize: 26,
+                        fontSize: 26 * scale,
                         color: PdfColors.white,
                         letterSpacing: 2.0,
                       ),
                     ),
-                    pw.SizedBox(height: 6),
+                    pw.SizedBox(height: 6 * spacingScale),
                     _buildContactRow(
                       resumeData,
-                      pw.TextStyle(font: baseFont, fontSize: 9.0, color: PdfColor.fromHex('#FFFFFF')),
+                      pw.TextStyle(font: baseFont, fontSize: 9.0 * scale, color: PdfColor.fromHex('#FFFFFF')),
                       pw.WrapAlignment.start,
                     ),
                   ],
                 ),
               ),
             );
-            contentWidgets.add(pw.SizedBox(height: 12));
+            contentWidgets.add(pw.SizedBox(height: 12 * spacingScale));
           } else if (isExecutive) {
             // Executive Formal: centered name with gold underline
             final goldAccent = PdfColor.fromHex('#B8860B');
@@ -116,24 +118,24 @@ class PdfGenerator {
                         : 'YOUR NAME',
                     style: pw.TextStyle(
                       font: boldFont,
-                      fontSize: 24,
+                      fontSize: 24 * scale,
                       color: primaryColor,
                       letterSpacing: 3.0,
                     ),
                   ),
-                  pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 4 * spacingScale),
                   pw.Container(height: 2, width: 80, color: goldAccent),
-                  pw.SizedBox(height: 6),
+                  pw.SizedBox(height: 6 * spacingScale),
                   _buildContactRow(
                     resumeData,
-                    pw.TextStyle(font: baseFont, fontSize: 9.0, color: accentColor),
+                    pw.TextStyle(font: baseFont, fontSize: 9.0 * scale, color: accentColor),
                     pw.WrapAlignment.center,
                   ),
-                  pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 8 * spacingScale),
                   pw.Divider(color: primaryColor, thickness: 1.5),
                 ],
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 10 * spacingScale),
             ]);
           } else {
             // Default header (Modern Indigo, Minimalist, Tech, Classic, ATS Clean)
@@ -149,22 +151,22 @@ class PdfGenerator {
                         : 'YOUR NAME',
                     style: pw.TextStyle(
                       font: boldFont,
-                      fontSize: isMinimal ? 20 : (isAtsClean ? 18 : 22),
+                      fontSize: (isMinimal ? 20 : (isAtsClean ? 18 : 22)) * scale,
                       color: primaryColor,
                       letterSpacing: isTech ? 0.0 : 1.2,
                     ),
                   ),
-                  pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 4 * spacingScale),
                   _buildContactRow(
                     resumeData,
-                    pw.TextStyle(font: baseFont, fontSize: 9.0, color: accentColor),
+                    pw.TextStyle(font: baseFont, fontSize: 9.0 * scale, color: accentColor),
                     isClassic ? pw.WrapAlignment.center : pw.WrapAlignment.start,
                   ),
-                  pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 8 * spacingScale),
                   pw.Divider(color: primaryColor, thickness: isClassic ? 1.5 : (isAtsClean ? 0.5 : 1.0)),
                 ],
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 10 * spacingScale),
             ]);
           }
 
@@ -181,7 +183,7 @@ class PdfGenerator {
                     _buildBulletOrParagraphText(
                       resumeData.personalInfo.summary,
                       baseFont,
-                      9.5,
+                      9.5 * scale,
                       textColor,
                       isClassic ? 2.5 : 2.0,
                     ),
@@ -193,7 +195,7 @@ class PdfGenerator {
                   sectionTitle = 'Experience';
                   sectionContent.addAll(resumeData.workExperience.map((exp) {
                     return pw.Padding(
-                      padding: const pw.EdgeInsets.only(bottom: 8),
+                      padding: pw.EdgeInsets.only(bottom: 8 * spacingScale),
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
@@ -206,12 +208,12 @@ class PdfGenerator {
                                     children: [
                                       pw.TextSpan(
                                         text: exp.position.isNotEmpty ? exp.position : 'Position Title',
-                                        style: pw.TextStyle(font: boldFont, fontSize: 10, color: textColor),
+                                        style: pw.TextStyle(font: boldFont, fontSize: 10 * scale, color: textColor),
                                       ),
                                       if (exp.company.isNotEmpty)
                                         pw.TextSpan(
                                           text: ' at ${exp.company}',
-                                          style: pw.TextStyle(font: italicFont, fontSize: 9.5, color: accentColor),
+                                          style: pw.TextStyle(font: italicFont, fontSize: 9.5 * scale, color: accentColor),
                                         ),
                                     ],
                                   ),
@@ -219,18 +221,18 @@ class PdfGenerator {
                               ),
                               pw.Text(
                                 [exp.startDate, exp.endDate].where((s) => s.isNotEmpty).join(' - '),
-                                style: pw.TextStyle(font: boldFont, fontSize: 9, color: accentColor),
+                                style: pw.TextStyle(font: boldFont, fontSize: 9 * scale, color: accentColor),
                               ),
                             ],
                           ),
-                          pw.SizedBox(height: 2),
+                          pw.SizedBox(height: 2 * spacingScale),
                           if (exp.description.isNotEmpty)
                             pw.Padding(
                               padding: const pw.EdgeInsets.only(left: 6),
                               child: _buildBulletOrParagraphText(
                                 exp.description,
                                 baseFont,
-                                9,
+                                9 * scale,
                                 textColor,
                                 1.8,
                                 forceBullets: true,
@@ -247,7 +249,7 @@ class PdfGenerator {
                   sectionTitle = 'Education';
                   sectionContent.addAll(resumeData.education.map((edu) {
                     return pw.Padding(
-                      padding: const pw.EdgeInsets.only(bottom: 6),
+                      padding: pw.EdgeInsets.only(bottom: 6 * spacingScale),
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
@@ -257,27 +259,27 @@ class PdfGenerator {
                               pw.Expanded(
                                 child: pw.Text(
                                   edu.degree.isNotEmpty ? edu.degree : 'Degree Program',
-                                  style: pw.TextStyle(font: boldFont, fontSize: 10, color: textColor),
+                                  style: pw.TextStyle(font: boldFont, fontSize: 10 * scale, color: textColor),
                                 ),
                               ),
                               pw.Text(
                                 [edu.startDate, edu.endDate].where((s) => s.isNotEmpty).join(' - '),
-                                style: pw.TextStyle(font: boldFont, fontSize: 9, color: accentColor),
+                                style: pw.TextStyle(font: boldFont, fontSize: 9 * scale, color: accentColor),
                               ),
                             ],
                           ),
-                          pw.SizedBox(height: 1),
+                          pw.SizedBox(height: 1 * spacingScale),
                           pw.Row(
                             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                             children: [
                               pw.Text(
                                 edu.institution.isNotEmpty ? edu.institution : 'University/School Name',
-                                style: pw.TextStyle(font: italicFont, fontSize: 9, color: accentColor),
+                                style: pw.TextStyle(font: italicFont, fontSize: 9 * scale, color: accentColor),
                               ),
                               if (edu.gpa.isNotEmpty)
                                 pw.Text(
                                   'GPA: ${edu.gpa}',
-                                  style: pw.TextStyle(font: baseFont, fontSize: 9, color: textColor),
+                                  style: pw.TextStyle(font: baseFont, fontSize: 9 * scale, color: textColor),
                                 ),
                             ],
                           ),
@@ -393,7 +395,7 @@ class PdfGenerator {
                   sectionTitle = 'Projects';
                   sectionContent.addAll(resumeData.projects.map((proj) {
                     return pw.Padding(
-                      padding: const pw.EdgeInsets.only(bottom: 6),
+                      padding: pw.EdgeInsets.only(bottom: 6 * spacingScale),
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
@@ -421,12 +423,12 @@ class PdfGenerator {
                               ),
                             ],
                           ),
-                          pw.SizedBox(height: 2),
+                          pw.SizedBox(height: 2 * spacingScale),
                           if (proj.description.isNotEmpty)
                             _buildBulletOrParagraphText(
                               proj.description,
                               baseFont,
-                              9,
+                              9 * scale,
                               textColor,
                               1.8,
                               forceBullets: true,
@@ -444,7 +446,7 @@ class PdfGenerator {
                       _buildBulletOrParagraphText(
                         customSec.content,
                         baseFont,
-                        9,
+                        9 * scale,
                         textColor,
                         1.8,
                         forceBullets: true,
@@ -457,6 +459,8 @@ class PdfGenerator {
                         boldFont,
                         primaryColor,
                         templateId,
+                        scale: scale,
+                        spacingScale: spacingScale,
                       ),
                     );
                   }
@@ -472,7 +476,7 @@ class PdfGenerator {
                         _buildBulletOrParagraphText(
                           customSec.content,
                           baseFont,
-                          9,
+                          9 * scale,
                           textColor,
                           1.8,
                           forceBullets: true,
@@ -485,6 +489,8 @@ class PdfGenerator {
                           boldFont,
                           primaryColor,
                           templateId,
+                          scale: scale,
+                          spacingScale: spacingScale,
                         ),
                       );
                     }
@@ -501,6 +507,8 @@ class PdfGenerator {
                   boldFont,
                   primaryColor,
                   templateId,
+                  scale: scale,
+                  spacingScale: spacingScale,
                 ),
               );
             }
@@ -520,6 +528,7 @@ class PdfGenerator {
     pw.Font font,
     PdfColor color,
     String templateId,
+    {double scale = 1.0, double spacingScale = 1.0}
   ) {
     final bool isTech = templateId == 'tech_professional';
 
@@ -539,7 +548,7 @@ class PdfGenerator {
                     title.toUpperCase(),
                     style: pw.TextStyle(
                       font: font,
-                      fontSize: 9.5,
+                      fontSize: 9.5 * scale,
                       color: color,
                       letterSpacing: 1.0,
                     ),
@@ -553,7 +562,7 @@ class PdfGenerator {
                 ),
               ],
             ),
-            pw.SizedBox(height: 4),
+            pw.SizedBox(height: 4 * spacingScale),
             pw.Divider(color: PdfColors.grey300, thickness: 0.5),
           ],
         ),
@@ -564,37 +573,37 @@ class PdfGenerator {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(title, font, color, templateId),
+        _buildSectionHeader(title, font, color, templateId, scale: scale, spacingScale: spacingScale),
         ...content,
-        pw.SizedBox(height: 6),
+        pw.SizedBox(height: 6 * spacingScale),
       ],
     );
   }
 
-  static pw.Widget _buildSectionHeader(String title, pw.Font font, PdfColor color, String templateId) {
+  static pw.Widget _buildSectionHeader(String title, pw.Font font, PdfColor color, String templateId, {double scale = 1.0, double spacingScale = 1.0}) {
     final bool isClassic = templateId == 'classic_elegance';
     final bool isMinimal = templateId == 'minimalist_executive';
 
     return pw.Column(
       crossAxisAlignment: isClassic ? pw.CrossAxisAlignment.center : pw.CrossAxisAlignment.start,
       children: [
-        pw.SizedBox(height: 8),
+        pw.SizedBox(height: 8 * spacingScale),
         pw.Text(
           title.toUpperCase(),
           style: pw.TextStyle(
             font: font,
-            fontSize: isMinimal ? 10 : 11,
+            fontSize: (isMinimal ? 10 : 11) * scale,
             color: isMinimal ? PdfColor.fromHex('#000000') : color,
             letterSpacing: 1.0,
           ),
         ),
-        pw.SizedBox(height: 2),
+        pw.SizedBox(height: 2 * spacingScale),
         if (!isMinimal)
           pw.Container(
             height: isClassic ? 1.5 : 1.0,
             color: isClassic ? PdfColor.fromHex('#000000') : PdfColor.fromHex('#c5cae9'),
           ),
-        pw.SizedBox(height: 6),
+        pw.SizedBox(height: 6 * spacingScale),
       ],
     );
   }
@@ -709,6 +718,9 @@ class PdfGenerator {
     final boldFont = pw.Font.helveticaBold();
     final italicFont = pw.Font.helveticaOblique();
 
+    final double scale = resumeData.forceOnePage ? 0.78 : 1.0;
+    final double spacingScale = resumeData.forceOnePage ? 0.6 : 1.0;
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.letter,
@@ -721,7 +733,7 @@ class PdfGenerator {
               pw.Container(
                 width: 190,
                 color: sidebarColor,
-                padding: const pw.EdgeInsets.all(18),
+                padding: pw.EdgeInsets.all(18 * scale),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
@@ -730,32 +742,32 @@ class PdfGenerator {
                       resumeData.personalInfo.fullName.isNotEmpty
                           ? resumeData.personalInfo.fullName
                           : 'Your Name',
-                      style: pw.TextStyle(font: boldFont, fontSize: 16, color: sidebarText),
+                      style: pw.TextStyle(font: boldFont, fontSize: 16 * scale, color: sidebarText),
                     ),
-                    pw.SizedBox(height: 3),
+                    pw.SizedBox(height: 3 * spacingScale),
                     pw.Container(height: 2, width: 40, color: sidebarAccent),
-                    pw.SizedBox(height: 16),
+                    pw.SizedBox(height: 16 * spacingScale),
 
                     // Contact Info
-                    pw.Text('CONTACT', style: pw.TextStyle(font: boldFont, fontSize: 9, color: sidebarAccent, letterSpacing: 1.5)),
-                    pw.SizedBox(height: 6),
+                    pw.Text('CONTACT', style: pw.TextStyle(font: boldFont, fontSize: 9 * scale, color: sidebarAccent, letterSpacing: 1.5)),
+                    pw.SizedBox(height: 6 * spacingScale),
                     if (resumeData.personalInfo.email.isNotEmpty)
-                      _sidebarContactRow('Email: ', resumeData.personalInfo.email, baseFont, sidebarText, link: resumeData.personalInfo.email),
+                      _sidebarContactRow('Email: ', resumeData.personalInfo.email, baseFont, sidebarText, link: resumeData.personalInfo.email, scale: scale),
                     if (resumeData.personalInfo.phoneNumber.isNotEmpty)
-                      _sidebarContactRow('Phone: ', resumeData.personalInfo.phoneNumber, baseFont, sidebarText),
+                      _sidebarContactRow('Phone: ', resumeData.personalInfo.phoneNumber, baseFont, sidebarText, scale: scale),
                     if (resumeData.personalInfo.location.isNotEmpty)
-                      _sidebarContactRow('Loc: ', resumeData.personalInfo.location, baseFont, sidebarText),
+                      _sidebarContactRow('Loc: ', resumeData.personalInfo.location, baseFont, sidebarText, scale: scale),
                     if (resumeData.personalInfo.website.isNotEmpty)
-                      _sidebarContactRow('Web: ', resumeData.personalInfo.website, baseFont, sidebarText, link: resumeData.personalInfo.website),
+                      _sidebarContactRow('Web: ', resumeData.personalInfo.website, baseFont, sidebarText, link: resumeData.personalInfo.website, scale: scale),
                     if (resumeData.personalInfo.github.isNotEmpty)
-                      _sidebarContactRow('GitHub: ', resumeData.personalInfo.github, baseFont, sidebarText, link: resumeData.personalInfo.github),
+                      _sidebarContactRow('GitHub: ', resumeData.personalInfo.github, baseFont, sidebarText, link: resumeData.personalInfo.github, scale: scale),
 
-                    pw.SizedBox(height: 18),
+                    pw.SizedBox(height: 18 * spacingScale),
 
                     // Skills
                     if (resumeData.skills.isNotEmpty) ...[
-                      pw.Text('SKILLS', style: pw.TextStyle(font: boldFont, fontSize: 9, color: sidebarAccent, letterSpacing: 1.5)),
-                      pw.SizedBox(height: 6),
+                      pw.Text('SKILLS', style: pw.TextStyle(font: boldFont, fontSize: 9 * scale, color: sidebarAccent, letterSpacing: 1.5)),
+                      pw.SizedBox(height: 6 * spacingScale),
                       ...resumeData.skills.map((skill) => pw.Padding(
                         padding: const pw.EdgeInsets.only(bottom: 4),
                         child: pw.Row(
@@ -765,7 +777,7 @@ class PdfGenerator {
                             pw.Expanded(
                               child: pw.Text(
                                 skill.name,
-                                style: pw.TextStyle(font: baseFont, fontSize: 8.5, color: sidebarText),
+                                style: pw.TextStyle(font: baseFont, fontSize: 8.5 * scale, color: sidebarText),
                               ),
                             ),
                           ],
@@ -773,25 +785,25 @@ class PdfGenerator {
                       )),
                     ],
 
-                    pw.SizedBox(height: 18),
+                    pw.SizedBox(height: 18 * spacingScale),
 
                     // Education in sidebar
                     if (resumeData.education.isNotEmpty) ...[
-                      pw.Text('EDUCATION', style: pw.TextStyle(font: boldFont, fontSize: 9, color: sidebarAccent, letterSpacing: 1.5)),
-                      pw.SizedBox(height: 6),
+                      pw.Text('EDUCATION', style: pw.TextStyle(font: boldFont, fontSize: 9 * scale, color: sidebarAccent, letterSpacing: 1.5)),
+                      pw.SizedBox(height: 6 * spacingScale),
                       ...resumeData.education.map((edu) => pw.Padding(
-                        padding: const pw.EdgeInsets.only(bottom: 8),
+                        padding: pw.EdgeInsets.only(bottom: 8 * spacingScale),
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text(edu.degree.isNotEmpty ? edu.degree : 'Degree',
-                                style: pw.TextStyle(font: boldFont, fontSize: 8.5, color: sidebarText)),
+                                style: pw.TextStyle(font: boldFont, fontSize: 8.5 * scale, color: sidebarText)),
                             pw.Text(edu.institution,
-                                style: pw.TextStyle(font: italicFont, fontSize: 8, color: PdfColor.fromHex('#B0C4D8'))),
+                                style: pw.TextStyle(font: italicFont, fontSize: 8 * scale, color: PdfColor.fromHex('#B0C4D8'))),
                             if (edu.startDate.isNotEmpty || edu.endDate.isNotEmpty)
                               pw.Text(
                                 [edu.startDate, edu.endDate].where((s) => s.isNotEmpty).join(' - '),
-                                style: pw.TextStyle(font: baseFont, fontSize: 7.5, color: PdfColor.fromHex('#8FA8BE')),
+                                style: pw.TextStyle(font: baseFont, fontSize: 7.5 * scale, color: PdfColor.fromHex('#8FA8BE')),
                               ),
                           ],
                         ),
@@ -804,28 +816,28 @@ class PdfGenerator {
               // RIGHT MAIN CONTENT
               pw.Expanded(
                 child: pw.Padding(
-                  padding: const pw.EdgeInsets.all(24),
+                  padding: pw.EdgeInsets.all(24 * scale),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       // Summary
                       if (resumeData.personalInfo.summary.isNotEmpty) ...[
-                        pw.Text('SUMMARY', style: pw.TextStyle(font: boldFont, fontSize: 11, color: headingColor, letterSpacing: 1.0)),
-                        pw.SizedBox(height: 2),
+                        pw.Text('SUMMARY', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
+                        pw.SizedBox(height: 2 * spacingScale),
                         pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
-                        pw.SizedBox(height: 6),
-                        _buildBulletOrParagraphText(resumeData.personalInfo.summary, baseFont, 9, mainText, 2.0),
-                        pw.SizedBox(height: 14),
+                        pw.SizedBox(height: 6 * spacingScale),
+                        _buildBulletOrParagraphText(resumeData.personalInfo.summary, baseFont, 9 * scale, mainText, 2.0),
+                        pw.SizedBox(height: 14 * spacingScale),
                       ],
 
                       // Experience
                       if (resumeData.workExperience.isNotEmpty) ...[
-                        pw.Text('EXPERIENCE', style: pw.TextStyle(font: boldFont, fontSize: 11, color: headingColor, letterSpacing: 1.0)),
-                        pw.SizedBox(height: 2),
+                        pw.Text('EXPERIENCE', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
+                        pw.SizedBox(height: 2 * spacingScale),
                         pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
-                        pw.SizedBox(height: 6),
+                        pw.SizedBox(height: 6 * spacingScale),
                         ...resumeData.workExperience.map((exp) => pw.Padding(
-                          padding: const pw.EdgeInsets.only(bottom: 8),
+                          padding: pw.EdgeInsets.only(bottom: 8 * spacingScale),
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
@@ -836,65 +848,65 @@ class PdfGenerator {
                                     child: pw.RichText(
                                       text: pw.TextSpan(children: [
                                         pw.TextSpan(text: exp.position.isNotEmpty ? exp.position : 'Position',
-                                            style: pw.TextStyle(font: boldFont, fontSize: 10, color: mainText)),
+                                            style: pw.TextStyle(font: boldFont, fontSize: 10 * scale, color: mainText)),
                                         if (exp.company.isNotEmpty)
                                           pw.TextSpan(text: ' at ${exp.company}',
-                                              style: pw.TextStyle(font: italicFont, fontSize: 9.5, color: mainAccent)),
+                                              style: pw.TextStyle(font: italicFont, fontSize: 9.5 * scale, color: mainAccent)),
                                       ]),
                                     ),
                                   ),
                                   pw.Text(
                                     [exp.startDate, exp.endDate].where((s) => s.isNotEmpty).join(' - '),
-                                    style: pw.TextStyle(font: boldFont, fontSize: 8.5, color: mainAccent),
+                                    style: pw.TextStyle(font: boldFont, fontSize: 8.5 * scale, color: mainAccent),
                                   ),
                                 ],
                               ),
-                              pw.SizedBox(height: 2),
+                              pw.SizedBox(height: 2 * spacingScale),
                               if (exp.description.isNotEmpty)
                                 pw.Padding(
                                   padding: const pw.EdgeInsets.only(left: 6),
-                                  child: _buildBulletOrParagraphText(exp.description, baseFont, 9, mainText, 1.8, forceBullets: true),
+                                  child: _buildBulletOrParagraphText(exp.description, baseFont, 9 * scale, mainText, 1.8, forceBullets: true),
                                 ),
                             ],
                           ),
                         )),
-                        pw.SizedBox(height: 8),
+                        pw.SizedBox(height: 8 * spacingScale),
                       ],
 
                       // Projects
                       if (resumeData.projects.isNotEmpty) ...[
-                        pw.Text('PROJECTS', style: pw.TextStyle(font: boldFont, fontSize: 11, color: headingColor, letterSpacing: 1.0)),
-                        pw.SizedBox(height: 2),
+                        pw.Text('PROJECTS', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
+                        pw.SizedBox(height: 2 * spacingScale),
                         pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
-                        pw.SizedBox(height: 6),
+                        pw.SizedBox(height: 6 * spacingScale),
                         ...resumeData.projects.map((proj) => pw.Padding(
-                          padding: const pw.EdgeInsets.only(bottom: 6),
+                          padding: pw.EdgeInsets.only(bottom: 6 * spacingScale),
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Text(proj.name.isNotEmpty ? proj.name : 'Project Name',
-                                  style: pw.TextStyle(font: boldFont, fontSize: 10, color: mainText)),
+                                  style: pw.TextStyle(font: boldFont, fontSize: 10 * scale, color: mainText)),
                               if (proj.description.isNotEmpty)
                                 pw.Padding(
                                   padding: const pw.EdgeInsets.only(left: 6, top: 2),
-                                  child: _buildBulletOrParagraphText(proj.description, baseFont, 9, mainText, 1.6, forceBullets: true),
+                                  child: _buildBulletOrParagraphText(proj.description, baseFont, 9 * scale, mainText, 1.6, forceBullets: true),
                                 ),
                             ],
                           ),
                         )),
-                        pw.SizedBox(height: 8),
+                        pw.SizedBox(height: 8 * spacingScale),
                       ],
 
                       // Custom Sections
                       ...resumeData.customSections.where((cs) => cs.content.isNotEmpty).map((cs) => pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text(cs.title.toUpperCase(), style: pw.TextStyle(font: boldFont, fontSize: 11, color: headingColor, letterSpacing: 1.0)),
-                          pw.SizedBox(height: 2),
+                          pw.Text(cs.title.toUpperCase(), style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
+                          pw.SizedBox(height: 2 * spacingScale),
                           pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
-                          pw.SizedBox(height: 6),
-                          _buildBulletOrParagraphText(cs.content, baseFont, 9, mainText, 1.8, forceBullets: true),
-                          pw.SizedBox(height: 10),
+                          pw.SizedBox(height: 6 * spacingScale),
+                          _buildBulletOrParagraphText(cs.content, baseFont, 9 * scale, mainText, 1.8, forceBullets: true),
+                          pw.SizedBox(height: 10 * spacingScale),
                         ],
                       )),
                     ],
@@ -910,7 +922,7 @@ class PdfGenerator {
     return pdf.save();
   }
 
-  static pw.Widget _sidebarContactRow(String label, String text, pw.Font font, PdfColor color, {String? link}) {
+  static pw.Widget _sidebarContactRow(String label, String text, pw.Font font, PdfColor color, {String? link, double scale = 1.0}) {
     if (link != null) {
       final url = link.startsWith('http') || link.startsWith('mailto:') 
           ? link 
@@ -921,7 +933,7 @@ class PdfGenerator {
           destination: url,
           child: pw.Text(
             '$label$text',
-            style: pw.TextStyle(font: font, fontSize: 8, color: color, decoration: pw.TextDecoration.underline),
+            style: pw.TextStyle(font: font, fontSize: 8 * scale, color: color, decoration: pw.TextDecoration.underline),
           ),
         ),
       );
@@ -930,7 +942,7 @@ class PdfGenerator {
       padding: const pw.EdgeInsets.only(bottom: 4),
       child: pw.Text(
         '$label$text',
-        style: pw.TextStyle(font: font, fontSize: 8, color: color),
+        style: pw.TextStyle(font: font, fontSize: 8 * scale, color: color),
       ),
     );
   }
