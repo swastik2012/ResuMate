@@ -167,19 +167,23 @@ class Education {
 }
 
 class Skill {
+  final String id;
   final String name;
   final String proficiency;
 
   Skill({
+    String? id,
     this.name = '',
     this.proficiency = '',
-  });
+  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
   Skill copyWith({
+    String? id,
     String? name,
     String? proficiency,
   }) {
     return Skill(
+      id: id ?? this.id,
       name: name ?? this.name,
       proficiency: proficiency ?? this.proficiency,
     );
@@ -187,6 +191,7 @@ class Skill {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'proficiency': proficiency,
     };
@@ -194,6 +199,7 @@ class Skill {
 
   factory Skill.fromJson(Map<String, dynamic> json) {
     return Skill(
+      id: json['id']?.toString() ?? DateTime.now().microsecondsSinceEpoch.toString(),
       name: json['name'] ?? '',
       proficiency: json['proficiency'] ?? '',
     );
@@ -267,6 +273,8 @@ class ResumeData {
   final String templateId;
   final String targetJobDescription;
   final bool forceOnePage;
+  final bool underlineLinks;
+  final Map<String, String> sectionHeaders;
 
   ResumeData({
     PersonalInfo? personalInfo,
@@ -279,12 +287,21 @@ class ResumeData {
     this.templateId = 'modern_indigo',
     this.targetJobDescription = '',
     this.forceOnePage = false,
+    this.underlineLinks = true,
+    Map<String, String>? sectionHeaders,
   })  : personalInfo = personalInfo ?? PersonalInfo(),
         workExperience = workExperience ?? [],
         education = education ?? [],
         skills = skills ?? [],
         projects = projects ?? [],
         customSections = customSections ?? [],
+        sectionHeaders = sectionHeaders ?? const {
+          'summary': 'Summary',
+          'experience': 'Experience',
+          'education': 'Education',
+          'skills': 'Skills',
+          'projects': 'Projects',
+        },
         sectionOrder = sectionOrder ??
             [
               'personal_info',
@@ -307,6 +324,8 @@ class ResumeData {
     String? templateId,
     String? targetJobDescription,
     bool? forceOnePage,
+    bool? underlineLinks,
+    Map<String, String>? sectionHeaders,
   }) {
     return ResumeData(
       personalInfo: personalInfo ?? this.personalInfo,
@@ -319,6 +338,8 @@ class ResumeData {
       templateId: templateId ?? this.templateId,
       targetJobDescription: targetJobDescription ?? this.targetJobDescription,
       forceOnePage: forceOnePage ?? this.forceOnePage,
+      underlineLinks: underlineLinks ?? this.underlineLinks,
+      sectionHeaders: sectionHeaders ?? this.sectionHeaders,
     );
   }
 
@@ -334,6 +355,8 @@ class ResumeData {
       'templateId': templateId,
       'targetJobDescription': targetJobDescription,
       'forceOnePage': forceOnePage,
+      'underlineLinks': underlineLinks,
+      'sectionHeaders': sectionHeaders,
     };
   }
 
@@ -378,6 +401,10 @@ class ResumeData {
       templateId: json['templateId'] ?? 'modern_indigo',
       targetJobDescription: json['targetJobDescription'] ?? '',
       forceOnePage: json['forceOnePage'] ?? false,
+      underlineLinks: json['underlineLinks'] ?? true,
+      sectionHeaders: (json['sectionHeaders'] as Map<String, dynamic>?)?.map(
+        (k, v) => MapEntry(k, v as String),
+      ),
     );
   }
 

@@ -202,6 +202,22 @@ class ResumeNotifier extends Notifier<ResumeData> {
     _saveToPrefs(state);
   }
 
+  void updateSectionHeader(String sectionId, String newTitle) {
+    final headers = Map<String, String>.from(state.sectionHeaders);
+    headers[sectionId] = newTitle;
+    state = state.copyWith(sectionHeaders: headers);
+    _saveToPrefs(state);
+  }
+
+  void reorderSkill(int oldIndex, int newIndex) {
+    final list = List<Skill>.from(state.skills);
+    if (newIndex > oldIndex) newIndex--;
+    final item = list.removeAt(oldIndex);
+    list.insert(newIndex, item);
+    state = state.copyWith(skills: list);
+    _saveToPrefs(state);
+  }
+
   void updateSectionOrder(List<String> order) {
     state = state.copyWith(sectionOrder: order);
     _saveToPrefs(state);

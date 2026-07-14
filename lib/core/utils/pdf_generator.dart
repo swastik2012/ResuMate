@@ -178,7 +178,7 @@ class PdfGenerator {
             switch (section) {
               case 'summary':
                 if (resumeData.personalInfo.summary.isNotEmpty) {
-                  sectionTitle = 'Summary';
+                  sectionTitle = resumeData.sectionHeaders['summary'] ?? 'Summary';
                   sectionContent.add(
                     _buildBulletOrParagraphText(
                       resumeData.personalInfo.summary,
@@ -192,7 +192,7 @@ class PdfGenerator {
                 break;
               case 'experience':
                 if (resumeData.workExperience.isNotEmpty) {
-                  sectionTitle = 'Experience';
+                  sectionTitle = resumeData.sectionHeaders['experience'] ?? 'Experience';
                   sectionContent.addAll(resumeData.workExperience.map((exp) {
                     return pw.Padding(
                       padding: pw.EdgeInsets.only(bottom: 8 * spacingScale),
@@ -246,7 +246,7 @@ class PdfGenerator {
                 break;
               case 'education':
                 if (resumeData.education.isNotEmpty) {
-                  sectionTitle = 'Education';
+                  sectionTitle = resumeData.sectionHeaders['education'] ?? 'Education';
                   sectionContent.addAll(resumeData.education.map((edu) {
                     return pw.Padding(
                       padding: pw.EdgeInsets.only(bottom: 6 * spacingScale),
@@ -291,7 +291,7 @@ class PdfGenerator {
                 break;
               case 'skills':
                 if (resumeData.skills.isNotEmpty) {
-                  sectionTitle = 'Skills';
+                  sectionTitle = resumeData.sectionHeaders['skills'] ?? 'Skills';
                   
                   if (templateId == 'skill_focused') {
                     // Skill-focused layout with progress bars
@@ -392,7 +392,7 @@ class PdfGenerator {
                 break;
               case 'projects':
                 if (resumeData.projects.isNotEmpty) {
-                  sectionTitle = 'Projects';
+                  sectionTitle = resumeData.sectionHeaders['projects'] ?? 'Projects';
                   sectionContent.addAll(resumeData.projects.map((proj) {
                     return pw.Padding(
                       padding: pw.EdgeInsets.only(bottom: 6 * spacingScale),
@@ -411,8 +411,8 @@ class PdfGenerator {
                                         style: pw.TextStyle(
                                           font: boldFont, 
                                           fontSize: 10 * scale, 
-                                          color: primaryColor,
-                                          decoration: pw.TextDecoration.underline,
+                                          color: textColor,
+                                          decoration: resumeData.underlineLinks ? pw.TextDecoration.underline : pw.TextDecoration.none,
                                         ),
                                       ),
                                     )
@@ -752,15 +752,15 @@ class PdfGenerator {
                     pw.Text('CONTACT', style: pw.TextStyle(font: boldFont, fontSize: 9 * scale, color: sidebarAccent, letterSpacing: 1.5)),
                     pw.SizedBox(height: 6 * spacingScale),
                     if (resumeData.personalInfo.email.isNotEmpty)
-                      _sidebarContactRow('Email: ', resumeData.personalInfo.email, baseFont, sidebarText, link: resumeData.personalInfo.email, scale: scale),
+                      _sidebarContactRow('Email: ', resumeData.personalInfo.email, baseFont, sidebarText, link: resumeData.personalInfo.email, scale: scale, underlineLinks: resumeData.underlineLinks),
                     if (resumeData.personalInfo.phoneNumber.isNotEmpty)
                       _sidebarContactRow('Phone: ', resumeData.personalInfo.phoneNumber, baseFont, sidebarText, scale: scale),
                     if (resumeData.personalInfo.location.isNotEmpty)
                       _sidebarContactRow('Loc: ', resumeData.personalInfo.location, baseFont, sidebarText, scale: scale),
                     if (resumeData.personalInfo.website.isNotEmpty)
-                      _sidebarContactRow('Web: ', resumeData.personalInfo.website, baseFont, sidebarText, link: resumeData.personalInfo.website, scale: scale),
+                      _sidebarContactRow('Web: ', resumeData.personalInfo.website, baseFont, sidebarText, link: resumeData.personalInfo.website, scale: scale, underlineLinks: resumeData.underlineLinks),
                     if (resumeData.personalInfo.github.isNotEmpty)
-                      _sidebarContactRow('GitHub: ', resumeData.personalInfo.github, baseFont, sidebarText, link: resumeData.personalInfo.github, scale: scale),
+                      _sidebarContactRow('GitHub: ', resumeData.personalInfo.github, baseFont, sidebarText, link: resumeData.personalInfo.github, scale: scale, underlineLinks: resumeData.underlineLinks),
 
                     pw.SizedBox(height: 18 * spacingScale),
 
@@ -822,7 +822,7 @@ class PdfGenerator {
                     children: [
                       // Summary
                       if (resumeData.personalInfo.summary.isNotEmpty) ...[
-                        pw.Text('SUMMARY', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
+                        pw.Text(resumeData.sectionHeaders['summary']?.toUpperCase() ?? 'SUMMARY', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
                         pw.SizedBox(height: 2 * spacingScale),
                         pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
                         pw.SizedBox(height: 6 * spacingScale),
@@ -832,7 +832,7 @@ class PdfGenerator {
 
                       // Experience
                       if (resumeData.workExperience.isNotEmpty) ...[
-                        pw.Text('EXPERIENCE', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
+                        pw.Text(resumeData.sectionHeaders['experience']?.toUpperCase() ?? 'EXPERIENCE', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
                         pw.SizedBox(height: 2 * spacingScale),
                         pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
                         pw.SizedBox(height: 6 * spacingScale),
@@ -875,7 +875,7 @@ class PdfGenerator {
 
                       // Projects
                       if (resumeData.projects.isNotEmpty) ...[
-                        pw.Text('PROJECTS', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
+                        pw.Text(resumeData.sectionHeaders['projects']?.toUpperCase() ?? 'PROJECTS', style: pw.TextStyle(font: boldFont, fontSize: 11 * scale, color: headingColor, letterSpacing: 1.0)),
                         pw.SizedBox(height: 2 * spacingScale),
                         pw.Container(height: 1, color: PdfColor.fromHex('#C5CAE9')),
                         pw.SizedBox(height: 6 * spacingScale),
@@ -884,8 +884,21 @@ class PdfGenerator {
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              pw.Text(proj.name.isNotEmpty ? proj.name : 'Project Name',
-                                  style: pw.TextStyle(font: boldFont, fontSize: 10 * scale, color: mainText)),
+                              proj.link.isNotEmpty
+                                ? pw.UrlLink(
+                                    destination: proj.link.startsWith('http') ? proj.link : 'https://${proj.link}',
+                                    child: pw.Text(
+                                      proj.name.isNotEmpty ? proj.name : 'Project Name',
+                                      style: pw.TextStyle(
+                                        font: boldFont,
+                                        fontSize: 10 * scale,
+                                        color: mainText,
+                                        decoration: resumeData.underlineLinks ? pw.TextDecoration.underline : pw.TextDecoration.none,
+                                      ),
+                                    ),
+                                  )
+                                : pw.Text(proj.name.isNotEmpty ? proj.name : 'Project Name',
+                                    style: pw.TextStyle(font: boldFont, fontSize: 10 * scale, color: mainText)),
                               if (proj.description.isNotEmpty)
                                 pw.Padding(
                                   padding: const pw.EdgeInsets.only(left: 6, top: 2),
@@ -922,7 +935,7 @@ class PdfGenerator {
     return pdf.save();
   }
 
-  static pw.Widget _sidebarContactRow(String label, String text, pw.Font font, PdfColor color, {String? link, double scale = 1.0}) {
+  static pw.Widget _sidebarContactRow(String label, String text, pw.Font font, PdfColor color, {String? link, double scale = 1.0, bool underlineLinks = true}) {
     if (link != null) {
       final url = link.startsWith('http') || link.startsWith('mailto:') 
           ? link 
@@ -933,7 +946,7 @@ class PdfGenerator {
           destination: url,
           child: pw.Text(
             '$label$text',
-            style: pw.TextStyle(font: font, fontSize: 8 * scale, color: color, decoration: pw.TextDecoration.underline),
+            style: pw.TextStyle(font: font, fontSize: 8 * scale, color: color, decoration: underlineLinks ? pw.TextDecoration.underline : pw.TextDecoration.none),
           ),
         ),
       );
@@ -964,7 +977,7 @@ class PdfGenerator {
           child: pw.Text(
             text,
             style: style.copyWith(
-              decoration: pw.TextDecoration.underline,
+              decoration: resumeData.underlineLinks ? pw.TextDecoration.underline : pw.TextDecoration.none,
             ),
           ),
         ));

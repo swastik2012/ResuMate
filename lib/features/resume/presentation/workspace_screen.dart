@@ -20,6 +20,187 @@ import 'package:resumate/features/ai_assistant/presentation/ai_chat_sheet.dart';
 import 'package:resumate/features/home/presentation/resume_list_provider.dart';
 import 'package:resumate/core/network/gemini_client.dart';
 
+/// Reusable AI prompt dialog for any section
+void showAiSectionPromptDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required String sectionName,
+  required String currentContent,
+  required ValueChanged<String> onResult,
+}) {
+  showDialog(
+    context: context,
+    builder: (ctx) => _AiPromptDialog(
+      sectionName: sectionName,
+      currentContent: currentContent,
+      onResult: onResult,
+      ref: ref,
+    ),
+  );
+}
+
+class _AiPromptDialog extends StatefulWidget {
+  final String sectionName;
+  final String currentContent;
+  final ValueChanged<String> onResult;
+  final WidgetRef ref;
+
+  const _AiPromptDialog({
+    required this.sectionName,
+    required this.currentContent,
+    required this.onResult,
+    required this.ref,
+  });
+
+  @override
+  State<_AiPromptDialog> createState() => _AiPromptDialogState();
+}
+
+class _AiPromptDialogState extends State<_AiPromptDialog> {
+  late TextEditingController _promptController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _promptController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          const Icon(Icons.auto_awesome_rounded, color: Colors.purple),
+          const SizedBox(width: 8),
+          Expanded(child: Text('AI: ${widget.sectionName}', style: const TextStyle(fontSize: 16))),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current content:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              constraints: const BoxConstraints(maxHeight: 100),
+              child: SingleChildScrollView(
+                child: Text(
+                  widget.currentContent.isEmpty ? '(empty)' : widget.currentContent,
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _promptController,
+              decoration: const InputDecoration(
+                labelText: 'Your instruction for Gemini AI',
+                hintText: 'e.g. Quantify achievements, make concise, convert to bullet points...',
+                alignLabelWithHint: true,
+              ),
+              maxLines: 3,
+              autofocus: true,
+            ),
+            if (_isLoading) ...[
+              const SizedBox(height: 12),
+              const Center(child: CircularProgressIndicator()),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _isLoading ? null : () async {
+            if (_promptController.text.trim().isEmpty) return;
+            setState(() => _isLoading = true);
+
+            try {
+              final client = widget.ref.read(geminiClientProvider);
+              final prompt = '''You are an expert resume writer. The user's "${widget.sectionName}" section currently contains:
+
+${widget.currentContent}
+
+The user's instruction: ${_promptController.text.trim()}
+
+Return ONLY the improved text content. Do not add any explanations, headers, or formatting instructions. Just return the updated text that should replace the current content.''';
+
+              final result = await client.generateText(prompt: prompt);
+              if (context.mounted) {
+                Navigator.pop(context);
+                widget.onResult(result.trim());
+              }
+            } catch (e) {
+              if (context.mounted) {
+                setState(() => _isLoading = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('AI Error: $e')),
+                );
+              }
+            }
+          },
+          icon: const Icon(Icons.auto_awesome_rounded),
+          label: const Text('Generate'),
+        ),
+      ],
+    );
+  }
+}
+
+Widget buildBulletInsertButton(TextEditingController controller, VoidCallback onSync) {
+  return TextButton.icon(
+    onPressed: () {
+      final text = controller.text;
+      final selection = controller.selection;
+      final bullet = text.isEmpty || text.endsWith('\n') ? '• ' : '\n• ';
+      
+      String newText;
+      int newCursorPos;
+      
+      if (selection.isValid && selection.start >= 0) {
+        newText = text.replaceRange(selection.start, selection.end, bullet);
+        newCursorPos = selection.start + bullet.length;
+      } else {
+        newText = text + bullet;
+        newCursorPos = newText.length;
+      }
+      
+      controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newCursorPos),
+      );
+      onSync();
+    },
+    icon: const Icon(Icons.format_list_bulleted_rounded, size: 14),
+    label: const Text('Add Bullet', style: TextStyle(fontSize: 11)),
+    style: TextButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      minimumSize: Size.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+  );
+}
+
 class WorkspaceScreen extends ConsumerStatefulWidget {
   final String? resumeId;
   const WorkspaceScreen({super.key, this.resumeId});
@@ -253,15 +434,19 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
   void _showReorderSectionsDialog(BuildContext context) {
     final resume = ref.read(resumeProvider);
     final order = List<String>.from(resume.sectionOrder);
+    final headers = Map<String, String>.from(resume.sectionHeaders);
 
     final sectionNames = {
       'personal_info': 'Contact Information & Summary',
-      'experience': 'Work Experience',
-      'education': 'Education',
-      'skills': 'Professional Skills',
-      'projects': 'Projects',
+      'experience': headers['experience'] ?? 'Experience',
+      'education': headers['education'] ?? 'Education',
+      'skills': headers['skills'] ?? 'Skills',
+      'projects': headers['projects'] ?? 'Projects',
+      'summary': headers['summary'] ?? 'Summary',
       'custom_sections': 'Custom Sections',
     };
+
+    String? editingSection;
 
     String getSectionName(String id) {
       if (sectionNames.containsKey(id)) {
@@ -277,18 +462,22 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
       return id;
     }
 
+    bool isRenameable(String id) {
+      return ['summary', 'experience', 'education', 'skills', 'projects'].contains(id);
+    }
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Reorder Sections'),
+          title: const Text('Reorder & Rename Sections'),
           content: SizedBox(
             width: 400,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Change the vertical layout order of your resume by using the arrows below.',
+                  'Drag to reorder sections. Tap the pencil icon to rename a section header in your PDF.',
                   style: TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 12),
@@ -298,9 +487,40 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
                     itemCount: order.length,
                     itemBuilder: (context, index) {
                       final sec = order[index];
+                      final canRename = isRenameable(sec);
+                      final isEditing = editingSection == sec;
+
                       return ListTile(
                         dense: true,
-                        title: Text(getSectionName(sec), style: const TextStyle(fontWeight: FontWeight.w500)),
+                        title: isEditing
+                          ? TextFormField(
+                              initialValue: sectionNames[sec] ?? sec,
+                              autofocus: true,
+                              style: const TextStyle(fontSize: 14),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              ),
+                              onFieldSubmitted: (val) {
+                                if (val.trim().isNotEmpty) {
+                                  setState(() {
+                                    headers[sec] = val.trim();
+                                    sectionNames[sec] = val.trim();
+                                    editingSection = null;
+                                  });
+                                }
+                              },
+                              onTapOutside: (_) {
+                                setState(() => editingSection = null);
+                              },
+                            )
+                          : Text(getSectionName(sec), style: const TextStyle(fontWeight: FontWeight.w500)),
+                        leading: canRename && !isEditing
+                          ? InkWell(
+                              onTap: () => setState(() => editingSection = sec),
+                              child: const Icon(Icons.edit_rounded, size: 16),
+                            )
+                          : const SizedBox(width: 16),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -345,9 +565,14 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
             FilledButton(
               onPressed: () {
                 ref.read(resumeProvider.notifier).updateSectionOrder(order);
+                // Apply any header renames
+                final currentResume = ref.read(resumeProvider);
+                ref.read(resumeProvider.notifier).loadResumeData(
+                  currentResume.copyWith(sectionHeaders: headers),
+                );
                 Navigator.pop(context);
               },
-              child: const Text('Apply Order'),
+              child: const Text('Apply'),
             ),
           ],
         ),
@@ -398,6 +623,21 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
               final currentResume = ref.read(resumeProvider);
               ref.read(resumeProvider.notifier).loadResumeData(
                 currentResume.copyWith(forceOnePage: val),
+              );
+            },
+          ),
+          const Divider(height: 1),
+          SwitchListTile(
+            secondary: const Icon(Icons.link_off_rounded),
+            title: const Text('Underline Links'),
+            subtitle: const Text('Show underlines on clickable links in PDF'),
+            value: ref.watch(resumeProvider).underlineLinks,
+            activeTrackColor: Theme.of(context).colorScheme.primaryContainer,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
+            onChanged: (val) {
+              final currentResume = ref.read(resumeProvider);
+              ref.read(resumeProvider.notifier).loadResumeData(
+                currentResume.copyWith(underlineLinks: val),
               );
             },
           ),
@@ -1079,17 +1319,57 @@ class _WorkspaceScreenState extends ConsumerState<WorkspaceScreen> {
 // Sub-Widget Section Components to maintain code clarity
 // ----------------------------------------------------
 
-class SectionCard extends StatelessWidget {
+class SectionCard extends StatefulWidget {
   final String title;
   final IconData icon;
   final Widget child;
+  final void Function(String)? onTitleChanged;
 
   const SectionCard({
     super.key,
     required this.title,
     required this.icon,
     required this.child,
+    this.onTitleChanged,
   });
+
+  @override
+  State<SectionCard> createState() => _SectionCardState();
+}
+
+class _SectionCardState extends State<SectionCard> {
+  late TextEditingController _titleController;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.title);
+  }
+
+  @override
+  void didUpdateWidget(SectionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title && _titleController.text != widget.title) {
+      _titleController.text = widget.title;
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged(String value) {
+    if (widget.onTitleChanged != null) {
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      _debounce = Timer(const Duration(milliseconds: 500), () {
+        widget.onTitleChanged!(value);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1103,19 +1383,37 @@ class SectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: theme.colorScheme.primary, size: 24),
+                Icon(widget.icon, color: theme.colorScheme.primary, size: 24),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                  ),
+                Expanded(
+                  child: widget.onTitleChanged != null
+                      ? TextFormField(
+                          controller: _titleController,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: _onTextChanged,
+                        )
+                      : Text(
+                          widget.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
                 ),
+                if (widget.onTitleChanged != null)
+                  Icon(Icons.edit_rounded, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5), size: 16),
               ],
             ),
             const SizedBox(height: 16),
-            child,
+            widget.child,
           ],
         ),
       ),
@@ -1202,9 +1500,12 @@ class _PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
       }
     });
 
+    final headers = ref.watch(resumeProvider.select((r) => r.sectionHeaders));
+
     return SectionCard(
-      title: 'Contact Information',
+      title: headers['summary'] ?? 'Summary',
       icon: Icons.person_outline_rounded,
+      onTitleChanged: (val) => ref.read(resumeProvider.notifier).updateSectionHeader('summary', val),
       child: Column(
         children: [
           TextFormField(
@@ -1285,6 +1586,33 @@ class _PersonalInfoSectionState extends ConsumerState<PersonalInfoSection> {
             ),
             maxLines: 4,
             onChanged: (_) => _syncState(),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              buildBulletInsertButton(_summaryController, _syncState),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => showAiSectionPromptDialog(
+                  context,
+                  ref,
+                  sectionName: 'Summary',
+                  currentContent: _summaryController.text,
+                  onResult: (val) {
+                    _summaryController.text = val;
+                    _syncState();
+                  },
+                ),
+                icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                label: const Text('Custom AI Prompt', style: TextStyle(fontSize: 11)),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1414,9 +1742,12 @@ class WorkExperienceSection extends ConsumerWidget {
     // Only rebuild when items are added/removed, not when text in items changes
     final list = ref.watch(resumeProvider.select((r) => r.workExperience));
 
+    final headers = ref.watch(resumeProvider.select((r) => r.sectionHeaders));
+
     return SectionCard(
-      title: 'Work Experience',
+      title: headers['experience'] ?? 'Work Experience',
       icon: Icons.work_outline_rounded,
+      onTitleChanged: (val) => ref.read(resumeProvider.notifier).updateSectionHeader('experience', val),
       child: Column(
         children: [
           ...list.asMap().entries.map((entry) {
@@ -1595,6 +1926,33 @@ class _WorkExperienceItemState extends ConsumerState<WorkExperienceItem> {
               maxLines: 4,
               onChanged: (_) => _syncState(),
             ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                buildBulletInsertButton(_descController, _syncState),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () => showAiSectionPromptDialog(
+                    context,
+                    ref,
+                    sectionName: 'Work Experience: ${_positionController.text}',
+                    currentContent: _descController.text,
+                    onResult: (val) {
+                      _descController.text = val;
+                      _syncState();
+                    },
+                  ),
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                  label: const Text('Custom AI Prompt', style: TextStyle(fontSize: 11)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -1610,9 +1968,12 @@ class EducationSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(resumeProvider.select((r) => r.education));
 
+    final headers = ref.watch(resumeProvider.select((r) => r.sectionHeaders));
+
     return SectionCard(
-      title: 'Education',
+      title: headers['education'] ?? 'Education',
       icon: Icons.school_outlined,
+      onTitleChanged: (val) => ref.read(resumeProvider.notifier).updateSectionHeader('education', val),
       child: Column(
         children: [
           ...list.asMap().entries.map((entry) {
@@ -1785,17 +2146,42 @@ class SkillsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(resumeProvider.select((r) => r.skills));
+    final headers = ref.watch(resumeProvider.select((r) => r.sectionHeaders));
 
     return SectionCard(
-      title: 'Professional Skills',
+      title: headers['skills'] ?? 'Professional Skills',
       icon: Icons.code_rounded,
+      onTitleChanged: (val) => ref.read(resumeProvider.notifier).updateSectionHeader('skills', val),
       child: Column(
         children: [
-          ...list.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final skill = entry.value;
-            return SkillItem(key: ValueKey('skill_$idx'), index: idx, skill: skill);
-          }),
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: list.length,
+            buildDefaultDragHandles: false,
+            onReorderItem: (oldIndex, newIndex) {
+              ref.read(resumeProvider.notifier).reorderSkill(oldIndex, newIndex);
+            },
+            itemBuilder: (context, idx) {
+              final skill = list[idx];
+              return Padding(
+                key: ValueKey('skill_${skill.id}'),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    ReorderableDragStartListener(
+                      index: idx,
+                      child: const Padding(
+                        padding: EdgeInsets.only(right: 8.0),
+                        child: Icon(Icons.drag_indicator_rounded, color: Colors.grey),
+                      ),
+                    ),
+                    Expanded(child: SkillItem(index: idx, skill: skill)),
+                  ],
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
             onPressed: () {
@@ -1868,7 +2254,7 @@ class _SkillItemState extends ConsumerState<SkillItem> {
     return Card(
       color: theme.colorScheme.surfaceContainerLow,
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
@@ -2207,10 +2593,12 @@ class ProjectsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(resumeProvider.select((r) => r.projects));
+    final headers = ref.watch(resumeProvider.select((r) => r.sectionHeaders));
 
     return SectionCard(
-      title: 'Projects',
+      title: headers['projects'] ?? 'Projects',
       icon: Icons.rocket_launch_outlined,
+      onTitleChanged: (val) => ref.read(resumeProvider.notifier).updateSectionHeader('projects', val),
       child: Column(
         children: [
           ...list.asMap().entries.map((entry) {
@@ -2341,6 +2729,33 @@ class _ProjectItemState extends ConsumerState<ProjectItem> {
               maxLines: 3,
               onChanged: (_) => _syncState(),
             ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                buildBulletInsertButton(_descController, _syncState),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () => showAiSectionPromptDialog(
+                    context,
+                    ref,
+                    sectionName: 'Project: ${_nameController.text}',
+                    currentContent: _descController.text,
+                    onResult: (val) {
+                      _descController.text = val;
+                      _syncState();
+                    },
+                  ),
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                  label: const Text('Custom AI Prompt', style: TextStyle(fontSize: 11)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -2357,10 +2772,12 @@ class CustomSectionsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(resumeProvider.select((r) => r.customSections));
+    final headers = ref.watch(resumeProvider.select((r) => r.sectionHeaders));
 
     return SectionCard(
-      title: 'Custom Sections',
+      title: headers['custom'] ?? 'Custom Sections',
       icon: Icons.dashboard_customize_outlined,
+      onTitleChanged: (val) => ref.read(resumeProvider.notifier).updateSectionHeader('custom', val),
       child: Column(
         children: [
           ...list.asMap().entries.map((entry) {
@@ -2485,31 +2902,21 @@ class _CustomSectionItemState extends ConsumerState<CustomSectionItem> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                buildBulletInsertButton(_contentController, _syncState),
+                const SizedBox(width: 8),
                 TextButton.icon(
-                  onPressed: () {
-                    final text = _contentController.text;
-                    final selection = _contentController.selection;
-                    final bullet = text.isEmpty || text.endsWith('\n') ? '• ' : '\n• ';
-                    
-                    String newText;
-                    int newCursorPos;
-                    
-                    if (selection.isValid && selection.start >= 0) {
-                      newText = text.replaceRange(selection.start, selection.end, bullet);
-                      newCursorPos = selection.start + bullet.length;
-                    } else {
-                      newText = text + bullet;
-                      newCursorPos = newText.length;
-                    }
-                    
-                    _contentController.value = TextEditingValue(
-                      text: newText,
-                      selection: TextSelection.collapsed(offset: newCursorPos),
-                    );
-                    _syncState();
-                  },
-                  icon: const Icon(Icons.format_list_bulleted_rounded, size: 14),
-                  label: const Text('Add Bullet Point', style: TextStyle(fontSize: 11)),
+                  onPressed: () => showAiSectionPromptDialog(
+                    context,
+                    ref,
+                    sectionName: 'Custom Section: ${_titleController.text}',
+                    currentContent: _contentController.text,
+                    onResult: (val) {
+                      _contentController.text = val;
+                      _syncState();
+                    },
+                  ),
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                  label: const Text('Custom AI Prompt', style: TextStyle(fontSize: 11)),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     minimumSize: Size.zero,
